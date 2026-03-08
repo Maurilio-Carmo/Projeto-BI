@@ -4,6 +4,13 @@
 // Total: 46 tabelas
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── Classificação de produtos ────────────────────────────────────────────────
+export * from './produto/secoes';
+export * from './produto/grupos';
+export * from './produto/subgrupos';
+export * from './produto/marcas';
+export * from './produto/familias';
+
 // ── Produto — sub-tabelas (FK → products) ────────────────────────────────────
 export * from './produto/products';
 export * from './produto/product-impostos-federais';
@@ -15,12 +22,6 @@ export * from './produto/product-codigos-auxiliares';
 export * from './produto/product-precos';
 export * from './produto/product-custos';
 export * from './produto/product-fornecedores';
-
-// ── Classificação de produtos ────────────────────────────────────────────────
-export * from './produto/secoes';
-export * from './produto/grupos';
-export * from './produto/subgrupos';
-export * from './produto/marcas';
 
 // ── Pessoas ──────────────────────────────────────────────────────────────────
 export * from './pessoa/clientes';
@@ -55,11 +56,23 @@ export * from './estoque/locais-estoque';
 export * from './estoque/estoque-saldos';
 export * from './estoque/tipos-ajuste-estoque';
 
-// ── Motivos PDV ───────────────────────────────────────────────────────────────
+// ── Frente de Loja ────────────────────────────────────────────────────────────
+export * from './frente-loja/encartes';
+export * from './frente-loja/encarte-produtos';
+export * from './frente-loja/encarte-lojas';
 export * from './frente-loja/motivos-acrescimo';
 export * from './frente-loja/motivos-desconto';
 export * from './frente-loja/motivos-devolucao';
 export * from './frente-loja/motivos-cancelamento';
+
+// ── Transações ────────────────────────────────────────────────────────────────
+export * from './transacoes/notas-compra';
+export * from './transacoes/notas-compra-itens';
+export * from './transacoes/notas-venda';
+export * from './transacoes/notas-venda-itens';
+export * from './transacoes/cupons-fiscais';
+export * from './transacoes/cupons-itens';
+export * from './transacoes/cupons-finalizacoes';
 
 // ── Infraestrutura de Sync ────────────────────────────────────────────────────
 export * from './infra/credencial';
