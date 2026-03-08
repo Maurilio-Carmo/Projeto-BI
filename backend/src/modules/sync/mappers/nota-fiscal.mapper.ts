@@ -1,11 +1,12 @@
 // backend/src/modules/sync/mappers/nota-fiscal.mapper.ts
 //
-// Converte objetos da API VarejoFácil para as tabelas nota_venda / nota_compra.
+// Converte objetos da API VarejoFácil para as tabelas notasVenda / notasCompra.
 //
-// ── CORREÇÃO SQLite ──────────────────────────────────────────────────────────
-// O helper d() retornava string | null (adequado para MySQL DECIMAL).
-// SQLite usa real (number), então o helper foi renomeado para n() e agora
-// retorna number | null. Campos que eram String(...) também passam por Number().
+// ── CORREÇÃO CRÍTICA ─────────────────────────────────────────────────────────
+// Drizzle ORM usa o nome da propriedade JS (camelCase) no .values().
+// O mapper anterior retornava snake_case (external_id, numero_nota, …).
+// Agora retorna camelCase correspondente aos nomes de campo do schema:
+//   notasVenda.numeroNota, .chaveDaNfe, .lojaId, .dataEmissao, etc.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -13,145 +14,146 @@
 /** Converte valor para number ou null — compatível com colunas `real` do SQLite */
 const n = (v: unknown): number | null => (v != null ? Number(v) : null);
 
-// ─── Mapper principal da Nota Fiscal ─────────────────────────────────────────
+/** Converte para string ISO ou null — compatível com colunas `text` de data */
+const d = (v: unknown): string | null =>
+  v ? new Date(v as string).toISOString().slice(0, 10) : null;
+
+// ─── Mapper da Nota Fiscal (venda ou compra) ──────────────────────────────────
 
 export function mapNotaFiscalToDb(item: any, classificacao: 'VENDA' | 'COMPRA') {
   return {
-    external_id:                               Number(item.id),
-    numero_nota:                               String(item.numeroNota ?? ''),
-    serie:                                     item.serie ?? null,
-    chave_nfe:                                 item.chaveDaNfe ?? null,
-    situacao:                                  item.situacao ?? 'PENDENTE',
-    tipo_documento_fiscal:                     item.tipoDeDocumentoFiscal ?? null,
-    tipo_de_operacao:                          item.tipoDeOperacao ?? null,
-    modalidade:                                item.modalidade ?? null,
-    processo_de_emissao:                       item.processoDeEmissao ?? null,
-    tipo_de_geracao:                           item.tipoDeGeracao ?? null,
+    // ── Partes envolvidas ─────────────────────────────────────────────────────
+    lojaId:                 item.lojaId                 ? Number(item.lojaId)                 : 0,
+    fornecedorId:           item.fornecedorId            ? Number(item.fornecedorId)            : 0,
+    clienteId:              item.clienteId               ? Number(item.clienteId)               : 0,
+    operacaoId:             item.operacaoId              ? Number(item.operacaoId)              : 0,
+    cfopId:                 item.cfopId                  ? Number(item.cfopId)                  : 0,
+    localId:                item.localId                 ? Number(item.localId)                 : null,
+    funcionarioEmissorId:   item.funcionarioEmissorId    ? Number(item.funcionarioEmissorId)    : null,
+    funcionarioCompradorId: item.funcionarioCompradorId  ? Number(item.funcionarioCompradorId)  : null,
+
+    // ── Identificação da nota ─────────────────────────────────────────────────
+    numeroNota:             String(item.numeroNota ?? ''),
+    serie:                  item.serie ?? null,
+    chaveDaNfe:             item.chaveDaNfe ?? null,
+
+    // ── Situação / tipo ───────────────────────────────────────────────────────
+    situacao:               item.situacao ?? 'PENDENTE',
+    tipoDocumentoFiscal:    item.tipoDeDocumentoFiscal ?? null,
+    tipoDeOperacao:         item.tipoDeOperacao ?? null,
+    modalidade:             item.modalidade ?? null,
+    processoDeEmissao:      item.processoDeEmissao ?? null,
+    tipoDeGeracao:          item.tipoDeGeracao ?? null,
     classificacao,
-    data_emissao:                              item.dataEmissao ? new Date(item.dataEmissao) : new Date(),
-    data_operacao:                             item.dataOperacao ? new Date(item.dataOperacao) : null,
-    data_exclusao:                             item.dataExclusao ? new Date(item.dataExclusao) : null,
-    data_alteracao:                            item.dataAlteracao ? new Date(item.dataAlteracao) : null,
-    data_posto_fiscal:                         item.dataPostoFiscal ? new Date(item.dataPostoFiscal) : null,
-    // Valores financeiros — n() em vez de String()
-    valor_do_documento:                        Number(item.valorDoDocumento ?? 0),
-    valor_total_dos_itens:                     n(item.valorTotalDosItens),
-    valor_do_desconto:                         n(item.valorDoDesconto),
-    valor_de_outras_despesas:                  n(item.valorDeOutrasDespesas),
-    valor_do_frete:                            n(item.valorDoFrete),
-    valor_do_seguro:                           n(item.valorDoSeguro),
-    valor_do_icms:                             n(item.valorDoICMS),
-    valor_do_icms_substituicao_tributaria:     n(item.valorDoICMSSubstituicaoTributaria),
-    valor_do_icms_desonerado:                  n(item.valorDoICMSDesonerado),
-    valor_do_ipi:                              n(item.valorDoIPI),
-    valor_do_pis:                              n(item.valorDoPIS),
-    valor_do_cofins:                           n(item.valorDoCOFINS),
-    valor_do_dae:                              n(item.valorDoDAE),
-    valor_fecop:                               n(item.valorFecop),
-    valor_fecop_substituicao_tributaria:       n(item.valorFecopSubstituicaoTributaria),
-    base_de_calculo_do_icms:                   n(item.baseDeCalculoDoICMS),
-    base_de_calculo_do_icms_substituicao_tributaria: n(item.baseDeCalculoDoICMSSubstituicaoTributaria),
-    base_de_calculo_fecop:                     n(item.baseDeCalculoFecop),
-    base_de_calculo_fecop_substituicao_tributaria: n(item.baseDeCalculoFecopSubstituicaoTributaria),
-    // IDs relacionados
-    loja_id:                                   item.lojaId ? Number(item.lojaId) : null,
-    cliente_id:                                item.clienteId ? Number(item.clienteId) : null,
-    fornecedor_id:                             item.fornecedorId ? Number(item.fornecedorId) : null,
-    local_id:                                  item.localId ? Number(item.localId) : null,
-    operacao_id:                               item.operacaoId ? Number(item.operacaoId) : null,
-    cfop_id:                                   item.cfopId ? Number(item.cfopId) : null,
-    funcionario_emissor_id:                    item.funcionarioEmissorId ? Number(item.funcionarioEmissorId) : null,
-    funcionario_comprador_id:                  item.funcionarioCompradorId ? Number(item.funcionarioCompradorId) : null,
-    tipo_de_frete:                             item.tipoDeFrete ?? null,
-    condicao_de_pagamento:                     item.condicaoDePagamento ?? null,
-    atualiza_estoque:                          item.atualizaEstoque ?? null,
-    atualiza_custo:                            item.atualizaCusto ?? null,
-    gera_fiscal:                               item.geraFiscal ?? null,
-    compoe_abc:                                item.compoeABC ?? null,
-    observacao:                                item.observacao ?? null,
+
+    // ── Datas ─────────────────────────────────────────────────────────────────
+    dataEmissao:            d(item.dataEmissao)    ?? new Date().toISOString().slice(0, 10),
+    dataOperacao:           d(item.dataOperacao),
+    dataAlteracao:          d(item.dataAlteracao),
+    dataExclusao:           d(item.dataExclusao),
+    dataPostoFiscal:        d(item.dataPostoFiscal),
+
+    // ── Valores financeiros ───────────────────────────────────────────────────
+    valorDoDocumento:       n(item.valorDoDocumento)    ?? 0,
+    valorDoFrete:           n(item.valorDoFrete),
+    valorDoSeguro:          n(item.valorDoSeguro),
+    valorDoDesconto:        n(item.valorDoDesconto),
+    valorDasDespesasAcessorias: n(item.valorDasDespesasAcessorias),
+    valorDoPIS:             n(item.valorDoPIS),
+    valorDoCOFINS:          n(item.valorDoCOFINS),
+    valorDoIPI:             n(item.valorDoIPI),
+    valorFecop:             n(item.valorFecop),
+
+    // ── ICMS ─────────────────────────────────────────────────────────────────
+    valorDoICMS:                                      n(item.valorDoICMS),
+    valorDoICMSSubstituicaoTributaria:                n(item.valorDoICMSSubstituicaoTributaria),
+    valorDoICMSDesonerado:                            n(item.valorDoICMSDesonerado),
+    baseDeCalculoDoICMS:                              n(item.baseDeCalculoDoICMS),
+    baseDeCalculoDoICMSSubstituicaoTributaria:        n(item.baseDeCalculoDoICMSSubstituicaoTributaria),
+    baseDeCalculoFecop:                               n(item.baseDeCalculoFecop),
+    baseDeCalculoFecopSubstituicaoTributaria:         n(item.baseDeCalculoFecopSubstituicaoTributaria),
+    valorFecopSubstituicaoTributaria:                 n(item.valorFecopSubstituicaoTributaria),
+
+    // ── Operação / fluxo ─────────────────────────────────────────────────────
+    operacaoId2:            item.operacaoId2   ? Number(item.operacaoId2)   : null,  // só se existir no schema
+    tipoDeFrete:            item.tipoDeFrete   ?? null,
+    condicaoDePagamento:    item.condicaoDePagamento ?? null,
+
+    // ── Flags ─────────────────────────────────────────────────────────────────
+    geraFiscal:             item.geraFiscal      ?? null,
+    atualizaEstoque:        item.atualizaEstoque ?? null,
+    atualizaCusto:          item.atualizaCusto   ?? null,
+    compoeABC:              item.compoeABC       ?? null,
+
+    observacao:             item.observacao      ?? null,
   };
 }
 
 // ─── Mapper de Item da Nota Fiscal ────────────────────────────────────────────
 
-export function mapItemNotaFiscalToDb(item: any, _notaExternalId: number) {
+export function mapItemNotaFiscalToDb(item: any) {
   return {
-    external_item_id:                                   item.id ? Number(item.id) : null,
-    sequencial:                                         item.sequencial ? Number(item.sequencial) : null,
-    produto_id:                                         item.produtoId ? Number(item.produtoId) : null,
-    ncm:                                                item.ncm ?? null,
-    cest:                                               item.cest ?? null,
-    cfop_id:                                            item.cfopId ? Number(item.cfopId) : null,
-    unidade_de_medida:                                  item.unidadeDeMedida ?? null,
-    numero_pedido:                                      item.numeroPedido ?? null,
-    sequencial_item_pedido:                             item.sequencialItemPedido ?? null,
-    // Quantidades e valores — n() em vez de d()
-    quantidade:                                         n(item.quantidade),
-    quantidade_de_itens_na_unidade:                     n(item.quantidadeDeItensNaUnidade),
-    quantidade_completa:                                n(item.quantidadeCompleta),
-    valor_da_embalagem:                                 n(item.valorDaEmbalagem),
-    valor_total_do_item:                                n(item.valorTotalDoItem),
-    valor_do_frete:                                     n(item.valorDoFrete),
-    valor_do_seguro:                                    n(item.valorDoSeguro),
-    valor_outras_despesas:                              n(item.valorOutrasDespesas),
-    // Desconto
-    percentual_do_desconto:                             n(item.percentualDoDesconto),
-    valor_do_desconto_tributado:                        n(item.valorDoDescontoTributado),
-    valor_do_desconto_nao_tributado:                    n(item.valorDoDescontoNaoTributado),
-    // ICMS
-    tributacao:                                         item.tributacao ?? null,
-    csosn:                                              item.csosn ?? null,
-    aliquota_do_icms:                                   n(item.aliquotaDoICMS),
-    aliquota_no_simples:                                n(item.aliquotaNoSimples),
-    aliquota_estadual:                                  n(item.aliquotaEstadual),
-    aliquota_nacional:                                  n(item.aliquotaNacional),
-    aliquota_importado:                                 n(item.aliquotaImportado),
-    aliquota_do_icms_de_venda:                          n(item.aliquotaDoICMSDeVenda),
-    base_de_calculo_do_icms:                            n(item.baseDeCalculoDoICMS),
-    valor_do_icms:                                      n(item.valorDoICMS),
-    valor_do_icms_no_simples:                           n(item.valorDoICMSNoSimples),
-    valor_do_icms_desonerado:                           n(item.valorDoICMSDesonerado),
-    // ICMS ST
-    aliquota_do_icms_substituicao_tributaria:              n(item.aliquotaDoICMSComSubstituicaoTributaria),
-    base_de_calculo_do_icms_substituicao_tributaria:       n(item.baseDeCalculoDoICMSComSubstituicaoTributaria),
-    valor_do_icms_substituicao_tributaria:                 n(item.valorDoICMSComSubstituicaoTributaria),
-    percentual_de_reducao_do_icms_substituicao_tributaria: n(item.percentualDeReducaoDASubstituicaoTributaria),
-    percentual_de_margem_de_valor_agregado:                n(item.percentualDeAgregacao),
-    // FECOP
-    aliquota_fecop:                                     n(item.aliquotaDoFecop),
-    base_de_calculo_fecop:                              n(item.baseDeCalculoDoFecop),
-    valor_fecop:                                        n(item.valorDoFecop),
-    base_de_calculo_fecop_st:                           n(item.baseDeCalculoDoFecopSubstituto),
-    valor_fecop_st:                                     n(item.valorDoFecopSubstituto),
-    // IPI
-    cst_do_ipi_id:                                      item.cstDoIPI ? Number(item.cstDoIPI) : null,
-    aliquota_do_ipi:                                    n(item.aliquotaDoIPI),
-    base_de_calculo_ipi:                                n(item.baseDeCalculoDoIPI),
-    valor_do_ipi:                                       n(item.valorDoIPI),
-    // PIS
-    cst_do_pis_id:                                      item.cstDoPISId ? Number(item.cstDoPISId) : null,
-    aliquota_do_pis:                                    n(item.aliquotaDoPIS),
-    base_de_calculo_do_pis:                             n(item.baseDeCalculoDoPIS),
-    valor_do_pis:                                       n(item.valorDoPIS),
-    // COFINS
-    cst_do_cofins_id:                                   item.cstDoCOFINSId ? Number(item.cstDoCOFINSId) : null,
-    aliquota_do_cofins:                                 n(item.aliquotaDoCOFINS),
-    base_de_calculo_do_cofins:                          n(item.baseDeCalculoDoCOFINS),
-    valor_do_cofins:                                    n(item.valorDoCOFINS),
-    // DAE
-    percentual_do_dae:                                  n(item.percentualDoDAE),
-    tipo_de_entrada_dae:                                item.tipoDeEntradaDAE ?? null,
-    valor_do_dae:                                       n(item.valorDoDAE),
-    // Custo
-    custo_fiscal:                                       n(item.custoFiscal),
-    custo_medio:                                        n(item.custoMedio),
-    custo_reposicao:                                    n(item.custoReposicao),
-    percentual_icms_de_compra:                          n(item.percentualICMSDeCompra),
-    // Extras
-    modalidade_da_base_de_calculo:                      item.modalidadeDaBaseDeCalculo ?? null,
-    situacao_fiscal_id:                                 item.situacaoFiscalId ? Number(item.situacaoFiscalId) : null,
-    codigo_natureza_de_imposto_federal:                 item.codigoNaturezaDeImpostoFederal ? Number(item.codigoNaturezaDeImpostoFederal) : null,
-    compoe_total_da_nota:                               item.compoeTotalDaNota ?? null,
-    data_validade:                                      item.dataValidade ? new Date(item.dataValidade) : null,
+    // ── FKs de classificação ─────────────────────────────────────────────────
+    produtoId:              item.produtoId        ? Number(item.produtoId)        : 0,
+    situacaoFiscalId:       item.situacaoFiscalId ? Number(item.situacaoFiscalId) : 0,
+    cfopId:                 item.cfopId           ? Number(item.cfopId)           : 0,
+    cstDoPISId:             item.cstDoPISId       ? Number(item.cstDoPISId)       : null,
+    cstDoCOFINSId:          item.cstDoCOFINSId    ? Number(item.cstDoCOFINSId)    : null,
+    cstDoIPI:               item.cstDoIPI         ? Number(item.cstDoIPI)         : null,
+
+    // ── Identificação ─────────────────────────────────────────────────────────
+    sequencial:             item.sequencial        ? Number(item.sequencial)       : null,
+    ncm:                    item.ncm               ?? null,
+    cest:                   item.cest              ?? null,
+    tributacao:             item.tributacao         ?? null,
+    csosn:                  item.csosn             ?? null,
+    unidadeDeMedida:        item.unidadeDeMedida   ?? '',
+    numeroPedido:           item.numeroPedido      ?? null,
+    sequencialItemPedido:   item.sequencialItemPedido ?? null,
+
+    // ── Quantidades ───────────────────────────────────────────────────────────
+    quantidade:                      n(item.quantidade)                  ?? 0,
+    quantidadeDeItensNaUnidade:      n(item.quantidadeDeItensNaUnidade) ?? 0,
+    quantidadeCompleta:              n(item.quantidadeCompleta),
+
+    // ── Valores ───────────────────────────────────────────────────────────────
+    valorDaEmbalagem:                n(item.valorDaEmbalagem)            ?? 0,
+    valorTotalDoItem:                n(item.valorTotalDoItem),
+    valorDoDesconto:                 n(item.valorDoDesconto),
+    valorDoDescontoTributado:        n(item.valorDoDescontoTributado),
+    valorDoDescontoNaoTributado:     n(item.valorDoDescontoNaoTributado),
+    valorDoFrete:                    n(item.valorDoFrete),
+    valorDoSeguro:                   n(item.valorDoSeguro),
+    valorDoDAE:                      n(item.valorDoDAE),
+    valorOutrasDespesas:             n(item.valorOutrasDespesas),
+
+    // ── Custos ────────────────────────────────────────────────────────────────
+    custoReposicao:                  n(item.custoReposicao),
+    custoMedio:                      n(item.custoMedio),
+    custoFiscal:                     n(item.custoFiscal),
+
+    // ── Percentuais ───────────────────────────────────────────────────────────
+    percentualDoDesconto:            n(item.percentualDoDesconto),
+    percentualDoFrete:               n(item.percentualDoFrete),
+    percentualDoSeguro:              n(item.percentualDoSeguro),
+    percentualDoDAE:                 n(item.percentualDoDAE),
+    percentualOutrasDespesas:        n(item.percentualOutrasDespesas),
+    percentualTributado:             n(item.percentualTributado),
+    percentualDiferimento:           n(item.percentualDiferimento),
+    percentualICMSDeCompra:          n(item.percentualICMSDeCompra),
+    percentualDeAgregacao:           n(item.percentualDeAgregacao),
+
+    // ── ICMS ─────────────────────────────────────────────────────────────────
+    aliquotaDoICMS:                  n(item.aliquotaDoICMS),
+    aliquotaNoSimples:               n(item.aliquotaNoSimples),
+    aliquotaEstadual:                n(item.aliquotaEstadual),
+    aliquotaNacional:                n(item.aliquotaNacional),
+    aliquotaImportado:               n(item.aliquotaImportado),
+    baseDeCalculoDoICMS:             n(item.baseDeCalculoDoICMS),
+    valorDoICMS:                     n(item.valorDoICMS),
+    valorDoICMSNoSimples:            n(item.valorDoICMSNoSimples),
+    valorDoICMSDesonerado:           n(item.valorDoICMSDesonerado),
+    motivoDesoneracao:               item.motivoDesoneracao ?? null,
+    modalidadeDaBaseDeCalculo:       item.modalidadeDaBaseDeCalculo ?? null,
   };
 }

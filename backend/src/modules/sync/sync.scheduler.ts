@@ -1,14 +1,21 @@
 // backend/src/modules/sync/sync.scheduler.ts
+//
+// ── CORREÇÕES ────────────────────────────────────────────────────────────────
+// 1. config.is_active    → config.isActive
+// 2. config.entity_type  → config.entityType
+// 3. config.interval_hours → config.intervalMinutes (÷ 60 → horas p/ cron)
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
 import { syncConfig } from '../../database/schema';
 import { SyncService } from './sync.service';
 import { intervalHoursToCron } from './utils/cron.utils';
 import type { EntityType } from '../../database/schema/infra/sync-config';
+
+const VALID_ENTITY_TYPES: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
 
 @Injectable()
 export class SyncScheduler implements OnModuleInit {
@@ -25,12 +32,19 @@ export class SyncScheduler implements OnModuleInit {
     const configs = await this.db.select().from(syncConfig);
 
     for (const config of configs) {
-      if (config.is_active) {
-        this.registerJob(config.entity_type as EntityType, Number(config.interval_hours));
-      }
+      // isActive (camelCase, boolean)
+      if (!config.isActive) continue;
+
+      const entity = config.entityType as EntityType;
+      if (!VALID_ENTITY_TYPES.includes(entity)) continue;
+
+      // intervalMinutes → converter para horas para o utilitário cron
+      const intervalHours = Math.max(1, Math.round((config.intervalMinutes ?? 60) / 60));
+      this.registerJob(entity, intervalHours);
     }
   }
 
+  /** Registra (ou substitui) um CronJob para a entidade. */
   registerJob(entity: EntityType, intervalHours: number): void {
     const jobName  = `sync_${entity}`;
     const cronExpr = intervalHoursToCron(intervalHours);
@@ -51,6 +65,7 @@ export class SyncScheduler implements OnModuleInit {
     this.logger.log(`[${entity}] CronJob registrado: "${cronExpr}" (a cada ${intervalHours}h)`);
   }
 
+  /** Remove o CronJob de uma entidade (chamado ao desativar ou deletar config). */
   removeJob(entity: EntityType): void {
     const jobName = `sync_${entity}`;
     if (this.schedulerRegistry.doesExist('cron', jobName)) {
@@ -59,45 +74,41 @@ export class SyncScheduler implements OnModuleInit {
     }
   }
 
+  /** Recarrega o CronJob de uma entidade (chamado ao salvar config). */
   async reloadJob(entity: EntityType): Promise<void> {
-    const configs = await this.db
+    const { eq } = await import('drizzle-orm');
+
+    const rows = await this.db
       .select()
       .from(syncConfig)
-      .where(eq(syncConfig.entity_type, entity));
+      .where(eq(syncConfig.entityType, entity));
 
-    if (!configs.length) {
+    if (!rows.length) {
       this.removeJob(entity);
       return;
     }
 
-    const config = configs[0];
+    const config = rows[0];
 
-    if (config.is_active) {
-      this.registerJob(entity, Number(config.interval_hours));
-    } else {
+    if (!config.isActive) {
       this.removeJob(entity);
+      return;
     }
+
+    const intervalHours = Math.max(1, Math.round((config.intervalMinutes ?? 60) / 60));
+    this.registerJob(entity, intervalHours);
   }
 
-  getJobsStatus(): Record<string, { running: boolean; nextDate: string | null }> {
-    const result: Record<string, { running: boolean; nextDate: string | null }> = {};
-    const entities: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
+  /** Retorna status de todos os CronJobs registrados. */
+  getJobsStatus(): Array<{ name: string; running: boolean }> {
+    const jobs: Array<{ name: string; running: boolean }> = [];
 
-    for (const entity of entities) {
+    for (const entity of VALID_ENTITY_TYPES) {
       const jobName = `sync_${entity}`;
       const exists  = this.schedulerRegistry.doesExist('cron', jobName);
-
-      if (exists) {
-        const job      = this.schedulerRegistry.getCronJob(jobName);
-        result[entity] = {
-          running:  true,
-          nextDate: job.nextDate()?.toISO() ?? null,
-        };
-      } else {
-        result[entity] = { running: false, nextDate: null };
-      }
+      jobs.push({ name: entity, running: exists });
     }
 
-    return result;
+    return jobs;
   }
 }

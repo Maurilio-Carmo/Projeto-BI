@@ -3,14 +3,20 @@
 // Orquestrador do loop de sincronização incremental.
 // Delega HTTP → SyncHttpService, upserts → Repositories.
 //
-// ── CORREÇÃO libSQL ──────────────────────────────────────────────────────────
-// logResult[0].insertId → logResult.lastInsertRowid  (BigInt | undefined)
+// ── CORREÇÕES ────────────────────────────────────────────────────────────────
+// 1. syncConfig: todos os campos agora em camelCase (entityType, isActive,
+//    lastSyncId, lastSyncAt) — sem FK credencial_id.
+//    Credenciais lidas de syncConfig.baseUrlEncrypted / apiTokenEncrypted.
+// 2. syncLogs: status enum em MAIÚSCULAS ('RUNNING','SUCCESS','ERROR').
+//    Campos: entityType, startId, endId, recordsImported, errorMessage,
+//    startedAt, finishedAt — tudo camelCase.
+// 3. lastInsertRowid → BigInt; converte com Number().
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
-import { syncConfig, syncLogs, credencial } from '../../database/schema';
+import { syncConfig, syncLogs } from '../../database/schema';
 import type { EntityType } from '../../database/schema/infra/sync-config';
 import { SyncHttpService } from './sync.http.service';
 import { NotaVendaRepository } from './repositories/nota-venda.repository';
@@ -18,6 +24,8 @@ import { NotaCompraRepository } from './repositories/nota-compra.repository';
 import { CupomRepository } from './repositories/cupom.repository';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+const VALID_ENTITY_TYPES: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
 
 @Injectable()
 export class SyncService {
@@ -48,12 +56,13 @@ export class SyncService {
     this.logger.log(`[${entityType}] Iniciando sync...`);
 
     // ── Configuração ─────────────────────────────────────────────────────────
+    // syncConfig.entityType é o campo camelCase (coluna: entity_type)
     const configs = await this.db
       .select()
       .from(syncConfig)
-      .where(eq(syncConfig.entity_type, entityType));
+      .where(eq(syncConfig.entityType, entityType));
 
-    if (!configs.length || !configs[0].is_active) {
+    if (!configs.length || !configs[0].isActive) {
       this.logger.warn(`[${entityType}] Configuração não encontrada ou inativa.`);
       this.runningJobs.delete(entityType);
       return;
@@ -61,31 +70,33 @@ export class SyncService {
 
     const config = configs[0];
 
-    // ── Credencial ───────────────────────────────────────────────────────────
-    const creds = await this.db
-      .select()
-      .from(credencial)
-      .where(eq(credencial.id, config.credencial_id));
+    // ── Credenciais inline no syncConfig ─────────────────────────────────────
+    // baseUrlEncrypted e apiTokenEncrypted são armazenados em sync_config.
+    // TODO: descriptografar com EncryptionService quando implementado.
+    const baseUrl  = config.baseUrlEncrypted  ?? '';
+    const apiToken = config.apiTokenEncrypted ?? '';
 
-    if (!creds.length) {
-      this.logger.error(`[${entityType}] Credencial #${config.credencial_id} não encontrada.`);
+    if (!baseUrl || !apiToken) {
+      this.logger.error(`[${entityType}] URL ou token ausentes na configuração.`);
       this.runningJobs.delete(entityType);
       return;
     }
 
-    const cred = creds[0];
-
     // ── Cria log de execução ─────────────────────────────────────────────────
+    const now = new Date().toISOString();
     const logResult = await this.db.insert(syncLogs).values({
-      entity_type: entityType,
-      status:      'running',
-      start_id:    config.last_sync_id,
+      entityType,
+      status:    'RUNNING',
+      startId:   config.lastSyncId ?? 0,
+      startedAt: now,
     });
     // libSQL: lastInsertRowid é BigInt | undefined — converte para number
-    const logId = logResult.lastInsertRowid ? Number(logResult.lastInsertRowid) : 0;
+    const logId = logResult.lastInsertRowid
+      ? Number(logResult.lastInsertRowid)
+      : 0;
 
     let totalImported = 0;
-    let currentOffset = config.last_sync_id;
+    let currentOffset = config.lastSyncId ?? 0;
     let apiTotal: number | null = null;
 
     try {
@@ -99,8 +110,8 @@ export class SyncService {
 
         const result = await this.httpService.fetchBatch(
           entityType,
-          cred.api_url,
-          cred.api_key,
+          baseUrl,
+          apiToken,
           currentOffset,
           BATCH_SIZE,
         );
@@ -138,13 +149,22 @@ export class SyncService {
       // ── Atualiza cursor ───────────────────────────────────────────────────
       await this.db
         .update(syncConfig)
-        .set({ last_sync_id: currentOffset, last_sync_at: new Date(), updated_at: new Date() })
+        .set({
+          lastSyncId: currentOffset,
+          lastSyncAt: new Date().toISOString(),
+          updatedAt:  new Date().toISOString(),
+        })
         .where(eq(syncConfig.id, config.id));
 
       // ── Finaliza log com sucesso ──────────────────────────────────────────
       await this.db
         .update(syncLogs)
-        .set({ status: 'success', end_id: currentOffset, records_imported: totalImported, finished_at: new Date() })
+        .set({
+          status:          'SUCCESS',
+          endId:           currentOffset,
+          recordsImported: totalImported,
+          finishedAt:      new Date().toISOString(),
+        })
         .where(eq(syncLogs.id, logId));
 
       this.logger.log(
@@ -157,7 +177,11 @@ export class SyncService {
 
       await this.db
         .update(syncLogs)
-        .set({ status: 'error', error_message: errorMessage, finished_at: new Date() })
+        .set({
+          status:       'ERROR',
+          errorMessage,
+          finishedAt:   new Date().toISOString(),
+        })
         .where(eq(syncLogs.id, logId));
 
     } finally {
@@ -170,9 +194,9 @@ export class SyncService {
 
     for (const item of items) {
       try {
-        if (entityType === 'nota_venda')        await this.notaVendaRepo.upsert(item);
-        else if (entityType === 'nota_compra')  await this.notaCompraRepo.upsert(item);
-        else if (entityType === 'cupom')        await this.cupomRepo.upsert(item);
+        if      (entityType === 'nota_venda')  await this.notaVendaRepo.upsert(item);
+        else if (entityType === 'nota_compra') await this.notaCompraRepo.upsert(item);
+        else if (entityType === 'cupom')       await this.cupomRepo.upsert(item);
         imported++;
       } catch (err) {
         this.logger.error(`[${entityType}] Erro no upsert: ${String(err)}`);

@@ -1,25 +1,28 @@
 // backend/src/modules/logs/logs.service.ts
-// ── CORREÇÃO SQLite / libSQL ─────────────────────────────────────────────────
-// Com @libsql/client o tipo inferido pelo .select() perde informação de schema
-// em contextos sem anotação explícita (TypeScript strict mode).
-// Correção: importar e usar os tipos inferidos do schema como anotação
-// explícita nos callbacks de .find() — elimina os erros TS7006 (implicit any).
+//
+// ── CORREÇÕES ────────────────────────────────────────────────────────────────
+// 1. syncLogs.entity_type  → syncLogs.entityType
+// 2. syncLogs.started_at   → syncLogs.startedAt
+// 3. syncLogs.status enum  → 'RUNNING' | 'SUCCESS' | 'ERROR' | 'PARTIAL'
+// 4. records_imported      → recordsImported
 // ─────────────────────────────────────────────────────────────────────────────
+
 import { Injectable, Inject } from '@nestjs/common';
-import { desc, eq, and, count } from 'drizzle-orm';
-import { SQL } from 'drizzle-orm';
-import { DrizzleDB } from '../../database/drizzle';
-import { syncLogs }  from '../../database/schema/infra/sync-logs';
+import { desc, eq, and, count, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
+import { DrizzleDB }  from '../../database/drizzle';
+import { syncLogs }   from '../../database/schema/infra/sync-logs';
 import { syncConfig } from '../../database/schema/infra/sync-config';
 import type { SyncLog }    from '../../database/schema/infra/sync-logs';
-import type { SyncConfig } from '../../database/schema/infra/sync-config';
 import type { EntityType } from '../../database/schema/infra/sync-config';
 
+type LogStatus = 'RUNNING' | 'SUCCESS' | 'ERROR' | 'PARTIAL';
+
 interface FindLogsParams {
-  entity?: EntityType;
-  status?: 'success' | 'error' | 'running';
-  page?: number;
-  limit?: number;
+  entity?: string;
+  status?: string;
+  page?:   number;
+  limit?:  number;
 }
 
 @Injectable()
@@ -34,11 +37,11 @@ export class LogsService {
     const conditions: SQL[] = [];
 
     if (params.entity) {
-      conditions.push(eq(syncLogs.entity_type, params.entity));
+      conditions.push(eq(syncLogs.entityType, params.entity));
     }
 
     if (params.status) {
-      conditions.push(eq(syncLogs.status, params.status));
+      conditions.push(eq(syncLogs.status, params.status.toUpperCase() as LogStatus));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -48,7 +51,7 @@ export class LogsService {
         .select()
         .from(syncLogs)
         .where(where)
-        .orderBy(desc(syncLogs.started_at))
+        .orderBy(desc(syncLogs.startedAt))
         .limit(limit)
         .offset(offset),
       this.db.select({ total: count() }).from(syncLogs).where(where),
@@ -70,42 +73,48 @@ export class LogsService {
   }
 
   async getStats() {
-    const [lastLogs, configs] = await Promise.all([
-      this.db
+    const [totals] = await this.db
+      .select({
+        total:   count(),
+        running: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'RUNNING'  THEN 1 ELSE 0 END)`,
+        success: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'SUCCESS'  THEN 1 ELSE 0 END)`,
+        error:   sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'ERROR'    THEN 1 ELSE 0 END)`,
+        partial: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'PARTIAL'  THEN 1 ELSE 0 END)`,
+      })
+      .from(syncLogs);
+
+    // Dados por entidade
+    const configs = await this.db.select().from(syncConfig);
+
+    const ENTITY_TYPES = ['nota_venda', 'nota_compra', 'cupom'] as const;
+    const entities: Record<string, object> = {};
+
+    for (const et of ENTITY_TYPES) {
+      const cfg = configs.find(c => c.entityType === et);
+
+      const [lastLog] = await this.db
         .select()
         .from(syncLogs)
-        .orderBy(desc(syncLogs.started_at))
-        .limit(50),
-      this.db.select().from(syncConfig),
-    ]);
+        .where(eq(syncLogs.entityType, et))
+        .orderBy(desc(syncLogs.startedAt))
+        .limit(1);
 
-    // Anotação explícita nos callbacks — resolve TS7006 (implicit any) com libSQL
-    const lastNotaVendaSync  = lastLogs.find((l: SyncLog) => l.entity_type === 'nota_venda');
-    const lastNotaCompraSync = lastLogs.find((l: SyncLog) => l.entity_type === 'nota_compra');
-    const lastCupomSync      = lastLogs.find((l: SyncLog) => l.entity_type === 'cupom');
-
-    const notaVendaConfig  = configs.find((c: SyncConfig) => c.entity_type === 'nota_venda');
-    const notaCompraConfig = configs.find((c: SyncConfig) => c.entity_type === 'nota_compra');
-    const cupomConfig      = configs.find((c: SyncConfig) => c.entity_type === 'cupom');
+      entities[et] = {
+        lastSync:      cfg?.lastSyncAt ?? null,
+        lastSyncId:    cfg?.lastSyncId ?? 0,
+        isActive:      cfg?.isActive   ?? false,
+        intervalMin:   cfg?.intervalMinutes ?? null,
+        lastLog:       lastLog ?? null,
+      };
+    }
 
     return {
-      entities: {
-        nota_venda: {
-          lastLog:    lastNotaVendaSync  ?? null,
-          lastSyncId: notaVendaConfig?.last_sync_id  ?? 0,
-          isActive:   notaVendaConfig?.is_active     ?? false,
-        },
-        nota_compra: {
-          lastLog:    lastNotaCompraSync ?? null,
-          lastSyncId: notaCompraConfig?.last_sync_id ?? 0,
-          isActive:   notaCompraConfig?.is_active    ?? false,
-        },
-        cupom: {
-          lastLog:    lastCupomSync      ?? null,
-          lastSyncId: cupomConfig?.last_sync_id      ?? 0,
-          isActive:   cupomConfig?.is_active         ?? false,
-        },
-      },
+      total:   totals?.total   ?? 0,
+      running: totals?.running ?? 0,
+      success: totals?.success ?? 0,
+      error:   totals?.error   ?? 0,
+      partial: totals?.partial ?? 0,
+      entities,
     };
   }
 }

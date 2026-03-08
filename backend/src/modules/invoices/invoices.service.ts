@@ -1,39 +1,48 @@
 // backend/src/modules/invoices/invoices.service.ts
+//
+// ── CORREÇÕES ────────────────────────────────────────────────────────────────
+// 1. Import: 'transacoes/nota-venda' não existe.
+//    Correto: importa notasVenda de '../../database/schema' (via index)
+// 2. Campos camelCase:
+//    notaVenda.numero_nota → notasVenda.numeroNota
+//    notaVenda.chave_nfe   → notasVenda.chaveDaNfe
+//    notaVenda.data_emissao → notasVenda.dataEmissao
+// 3. Token: DRIZZLE_TOKEN removido, usa '@Inject("DRIZZLE")' direto
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { Injectable, Inject } from '@nestjs/common';
 import { desc, count, sql } from 'drizzle-orm';
-import { DRIZZLE_TOKEN } from '../../database/database.module';
-import { Database } from '../../database/drizzle';
-import { notaVenda } from '../../database/schema/transacoes/nota-venda'; // ✅ era './schema/invoices'
+import { DrizzleDB } from '../../database/drizzle';
+import { notasVenda } from '../../database/schema';
 
 @Injectable()
 export class InvoicesService {
-  constructor(@Inject(DRIZZLE_TOKEN) private readonly db: Database) {}
+  constructor(@Inject('DRIZZLE') private readonly db: DrizzleDB) {}
 
   async findAll(params: { page?: number; limit?: number; search?: string }) {
-    const page  = Math.max(1, params.page ?? 1);
-    const limit = Math.min(100, Math.max(1, params.limit ?? 20));
+    const page   = Math.max(1, params.page ?? 1);
+    const limit  = Math.min(100, Math.max(1, params.limit ?? 20));
     const offset = (page - 1) * limit;
     const search = params.search?.trim();
 
-    // ✅ Campos reais da tabela nota_venda (numero_nota, chave_nfe, loja_id)
     const whereConditions = search
       ? sql`(
-          ${notaVenda.numero_nota} LIKE ${`%${search}%`}
-          OR ${notaVenda.chave_nfe}  LIKE ${`%${search}%`}
+          ${notasVenda.numeroNota} LIKE ${`%${search}%`}
+          OR ${notasVenda.chaveDaNfe}  LIKE ${`%${search}%`}
         )`
       : undefined;
 
     const [data, totalResult] = await Promise.all([
       this.db
         .select()
-        .from(notaVenda)
+        .from(notasVenda)
         .where(whereConditions)
-        .orderBy(desc(notaVenda.data_emissao))
+        .orderBy(desc(notasVenda.dataEmissao))
         .limit(limit)
         .offset(offset),
       this.db
         .select({ total: count() })
-        .from(notaVenda)
+        .from(notasVenda)
         .where(whereConditions),
     ]);
 
@@ -53,7 +62,9 @@ export class InvoicesService {
   }
 
   async getStats() {
-    const [result] = await this.db.select({ total: count() }).from(notaVenda);
+    const [result] = await this.db
+      .select({ total: count() })
+      .from(notasVenda);
     return { total: result?.total ?? 0 };
   }
 }

@@ -1,179 +1,210 @@
 // backend/src/modules/sync/mappers/cupom.mapper.ts
 //
-// Converte objetos da API VarejoFácil para as tabelas cupom, cupom_item, cupom_finalizacao.
+// Converte objetos da API VarejoFácil para as tabelas:
+//   cuponsFiscais, cupomItens, cupomFinalizacoes.
 //
-// ── CORREÇÃO SQLite ──────────────────────────────────────────────────────────
-// Helper d() retornava string | null (MySQL DECIMAL).
-// SQLite usa real (number) → renomeado para n(), retorna number | null.
+// ── CORREÇÃO CRÍTICA ─────────────────────────────────────────────────────────
+// Drizzle ORM usa o nome da propriedade JS (camelCase) no .values().
+// O mapper anterior retornava snake_case (cupom_external_id, numero_caixa…).
+// Agora retorna camelCase correspondente aos nomes de campo do schema.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Converte valor para number ou null — compatível com colunas `real` do SQLite */
+/** Converte para number ou null */
 const n = (v: unknown): number | null => (v != null ? Number(v) : null);
 
-// ─── Mapper do Cupom principal ───────────────────────────────────────────────
+// ─── Mapper do Cupom Fiscal ───────────────────────────────────────────────────
 
 export function mapCupomToDb(item: any) {
   return {
-    external_id:                           Number(item.identificadorId),
-    id_externo:                            item.id ?? null,
-    coo:                                   item.coo ?? null,
-    sequencial:                            item.sequencial ?? null,
-    numero_caixa:                          item.numeroCaixa ?? null,
-    numero_equipamento:                    item.numeroEquipamento ?? null,
-    serie_equipamento:                     item.serieEquipamento ?? null,
-    sequencial_operador:                   item.sequencialOperador ?? null,
-    codigo_impressora:                     item.codigoImpressora ?? null,
-    contador_documento:                    item.contadorDocumento ?? null,
-    chave_eletronica:                      item.chaveEletronica ?? null,
-    numero_do_protocolo:                   item.numeroDoProtocolo ?? null,
-    status_xml_nota:                       item.statusXMLNota ?? null,
-    data:                                  item.data ? new Date(item.data) : new Date(),
-    data_venda:                            item.dataVenda ? new Date(item.dataVenda) : null,
-    hora:                                  item.hora ?? null,
-    data_hora_abertura_cupom:              item.dataHoraAberturaCupom ?? null,
-    data_hora_fechamento_cupom:            item.dataHoraFechamentoCupom ?? null,
-    criado_em:                             item.criadoEm ? new Date(item.criadoEm) : null,
-    nome_consumidor:                       item.nomeConsumidor ?? null,
-    cpf_consumidor:                        item.cpfConsumidor ?? null,
-    // Valores financeiros — n() em vez de d()
-    valor:                                 Number(item.valor ?? 0),
-    acrescimo:                             n(item.acrescimo),
-    desconto:                              n(item.desconto),
-    valor_desconto_fidelidade:             n(item.valorDescontoFidelidade),
-    valor_servico:                         n(item.valorServico),
-    valor_itens_cancelados:                n(item.valorItensCancelados),
-    margem_desconto:                       n(item.margemDesconto),
-    qtd_itens_cupom:                       n(item.qtdItensCupom),
-    qtd_itens_cancelados:                  n(item.qtdItensCancelados),
-    qtd_unidades_cupom:                    n(item.qtdUnidadesCupom),
-    qtd_unidades_canceladas:               n(item.qtdUnidadesCanceladas),
-    cancelada:                             item.cancelada ?? null,
-    imprimiu_nota_fiscal:                  item.imprimiuNotaFiscal ?? null,
-    tem_itens_vendido_em_oferta:           item.temItensVendidoEmOferta ?? null,
-    abono_servico:                         item.abonoServico ?? null,
-    justificativa_cancelamento:            item.justificativaCancelamento ?? null,
-    sequencial_cupom_cancelado:            item.sequencialCupomCancelado ?? null,
-    codigo_motivo_cancelamento_id:         item.codigoMotivoCancelamentoId ? Number(item.codigoMotivoCancelamentoId) : null,
-    justificativa_desconto:                item.justificativaDesconto ?? null,
-    codigo_motivo_desconto_id:             item.codigoMotivoDescontoId ? Number(item.codigoMotivoDescontoId) : null,
-    codigo_motivo_desconto_fidelidade_id:  item.codigoMotivoDescontoFidelidadeId ? Number(item.codigoMotivoDescontoFidelidadeId) : null,
-    tipo_intermediador:                    item.tipoIntermediador ?? null,
-    cnpj_do_intermediador:                 item.cnpjDoIntermediador ?? null,
-    nome_do_intermediador:                 item.nomeDoIntermediador ?? null,
-    indicador_de_presenca:                 item.indicadorDePresenca ?? null,
-    cartao_fidelidade:                     item.cartaoFidelidade ?? null,
-    loja_id:                               item.lojaId ? Number(item.lojaId) : null,
-    cliente_id:                            item.clienteId ? Number(item.clienteId) : null,
-    funcionario_id:                        item.funcionarioId ? Number(item.funcionarioId) : null,
-    autorizador_id:                        item.autorizadorId ? Number(item.autorizadorId) : null,
-    nota_fiscal_id:                        item.notaFiscalId ? Number(item.notaFiscalId) : null,
-    pedido_venda_id:                       item.pedidoVendaId ? Number(item.pedidoVendaId) : null,
-    tipo_preco:                            item.tipoPreco ?? null,
-    transacao_venda_envelope:              item.transacaoVendaEnvelope ?? null,
+    // ── Identificação externa ─────────────────────────────────────────────────
+    identificadorId: item.identificadorId ? Number(item.identificadorId) : null,
+
+    // ── Cabeçalho ─────────────────────────────────────────────────────────────
+    lojaId:           item.lojaId           ? Number(item.lojaId)           : null,
+    clienteId:        item.clienteId        ? Number(item.clienteId)        : 0,
+    funcionarioId:    item.funcionarioId    ? Number(item.funcionarioId)    : null,
+    autorizadorId:    item.autorizadorId    ? Number(item.autorizadorId)    : null,
+    pedidoVendaId:    item.pedidoVendaId    ? Number(item.pedidoVendaId)    : null,
+    notaFiscalId:     item.notaFiscalId     ? Number(item.notaFiscalId)     : null,
+
+    // ── Equipamento ───────────────────────────────────────────────────────────
+    numeroCaixa:         item.numeroCaixa         ?? null,
+    numeroEquipamento:   item.numeroEquipamento   ?? null,
+    serieEquipamento:    item.serieEquipamento    ?? null,
+    codigoImpressora:    item.codigoImpressora    ?? null,
+    sequencial:          item.sequencial          ?? null,
+    sequencialOperador:  item.sequencialOperador  ?? null,
+    coo:                 item.coo                 ? Number(item.coo) : null,
+    contadorDocumento:   item.contadorDocumento   ?? null,
+    chaveEletronica:     item.chaveEletronica     ?? null,
+    numeroDoProtocolo:   item.numeroDoProtocolo   ?? null,
+    transacaoVendaEnvelope: item.transacaoVendaEnvelope ?? '',
+
+    // ── Consumidor ────────────────────────────────────────────────────────────
+    nomeConsumidor:  item.nomeConsumidor  ?? null,
+    cpfConsumidor:   item.cpfConsumidor   ?? null,
+    cartaoFidelidade: item.cartaoFidelidade ?? '',
+
+    // ── Datas ─────────────────────────────────────────────────────────────────
+    dataVenda:                item.dataVenda                ? new Date(item.dataVenda).toISOString().slice(0, 10) : null,
+    data:                     item.data                     ? new Date(item.data).toISOString().slice(0, 10)      : new Date().toISOString().slice(0, 10),
+    hora:                     item.hora                     ?? null,
+    dataHoraAberturaCupom:    item.dataHoraAberturaCupom    ?? null,
+    dataHoraFechamentoCupom:  item.dataHoraFechamentoCupom  ?? null,
+    criadoEm:                 item.criadoEm                 ? new Date(item.criadoEm).toISOString() : null,
+    statusXMLNota:            item.statusXMLNota            ?? null,
+
+    // ── Valores financeiros ───────────────────────────────────────────────────
+    valor:                      Number(item.valor ?? 0),
+    acrescimo:                  n(item.acrescimo),
+    desconto:                   n(item.desconto),
+    valorDescontoFidelidade:    n(item.valorDescontoFidelidade),
+    valorServico:               n(item.valorServico),
+    valorItensCancelados:       n(item.valorItensCancelados),
+    margemDesconto:             n(item.margemDesconto),
+    qtdItensCupom:              n(item.qtdItensCupom),
+    qtdItensCancelados:         n(item.qtdItensCancelados),
+    qtdUnidadesCupom:           n(item.qtdUnidadesCupom),
+    qtdUnidadesCanceladas:      n(item.qtdUnidadesCanceladas),
+
+    // ── Flags ─────────────────────────────────────────────────────────────────
+    cancelada:                  item.cancelada                  ?? null,
+    imprimiuNotaFiscal:         item.imprimiuNotaFiscal         ?? null,
+    temItensVendidoEmOferta:    item.temItensVendidoEmOferta    ?? null,
+    abonoServico:               item.abonoServico               ?? null,
+
+    // ── Cancelamento / desconto ───────────────────────────────────────────────
+    justificativaCancelamento:           item.justificativaCancelamento           ?? null,
+    sequencialCupomCancelado:            item.sequencialCupomCancelado            ?? null,
+    codigoMotivoCancelamentoId:          item.codigoMotivoCancelamentoId          ? Number(item.codigoMotivoCancelamentoId)          : null,
+    justificativaDesconto:               item.justificativaDesconto               ?? null,
+    codigoMotivoDescontoId:              item.codigoMotivoDescontoId              ? Number(item.codigoMotivoDescontoId)              : null,
+    codigoMotivoDescontoFidelidadeId:    item.codigoMotivoDescontoFidelidadeId    ? Number(item.codigoMotivoDescontoFidelidadeId)    : null,
+
+    // ── Intermediador ─────────────────────────────────────────────────────────
+    tipoIntermediador:    item.tipoIntermediador    ?? null,
+    cnpjDoIntermediador:  item.cnpjDoIntermediador  ?? null,
+    nomeDoIntermediador:  item.nomeDoIntermediador  ?? null,
+    indicadorDePresenca:  item.indicadorDePresenca  ?? null,
+
+    // ── Preço / meta ──────────────────────────────────────────────────────────
+    tipoPreco:            item.tipoPreco ?? '',
   };
 }
 
 // ─── Mapper de Item do Cupom ──────────────────────────────────────────────────
+// cupomFiscalId é preenchido pelo repository (ID interno após upsert do cupom)
 
-export function mapCupomItemToDb(item: any, cupomExternalId: number) {
+export function mapCupomItemToDb(item: any, cupomFiscalId: number) {
   return {
-    cupom_external_id:                     cupomExternalId,
-    external_item_id:                      item.id ? Number(item.id) : null,
-    produto_id:                            item.produtoId ? Number(item.produtoId) : null,
-    ncm:                                   item.ncm ?? null,
-    csosn:                                 item.csosn ?? null,
-    cfop:                                  item.cfop ?? null,
-    codigo_auxiliar_id:                    item.codigoAuxiliarId ?? null,
-    serie_produto:                         item.serieProduto ?? null,
-    natureza:                              item.natureza ?? null,
-    tipo:                                  item.tipo ?? null,
-    tabela_a:                              item.tabelaA ?? null,
-    tabela_b:                              item.tabelaB ?? null,
-    tipo_preco:                            item.tipoPreco ?? null,
-    // Quantidades e valores — n() em vez de d()
-    quantidade_venda:                      n(item.quantidadeVenda),
-    valor_unidade:                         n(item.valorUnidade),
-    preco_venda:                           n(item.precoVenda),
-    preco_custo:                           n(item.precoCusto),
-    preco_custo_fiscal:                    n(item.precoCustoFiscal),
-    preco_custo_medio:                     n(item.precoCustoMedio),
-    valor_total:                           n(item.valorTotal),
-    valor_servico:                         n(item.valorServico),
-    valor_desconto:                        n(item.valorDesconto),
-    tipo_de_desconto_aplicado:             item.tipoDeDescontoAplicado ?? null,
-    valor_do_desconto_mega_caixa:          n(item.valorDoDescontoMegaCaixa),
-    valor_acrescimo:                       n(item.valorAcrescimo),
-    taxa_entrega:                          item.taxaEntrega ?? null,
-    tributacao:                            item.tributacao ?? null,
-    tributacao_aliquota:                   n(item.tributacaoAliquota),
-    tributacao_valor_reducao:              n(item.tributacaoValorReducao),
-    tributacao_aliquota_fecop:             n(item.tributacaoAliquotaFecop),
-    tributacao_simbologia:                 item.tributacaoSimbologia ?? null,
-    valor_fecop:                           n(item.valorFecop),
-    aliquota_pis:                          n(item.aliquotaPIS),
-    cst_pis:                               item.cstPIS ?? null,
-    aliquota_cofins:                       n(item.aliquotaCOFINS),
-    cst_cofins:                            item.cstCOFINS ?? null,
-    tipo_bonificacao:                      item.tipoBonificacao ?? null,
-    fator_bonificacao:                     n(item.fatorBonificacao),
-    local_venda_id:                        item.localVendaId ? Number(item.localVendaId) : null,
-    funcionario_vendedor_id:               item.funcionarioVendedorId ? Number(item.funcionarioVendedorId) : null,
-    funcionario_autorizador_id:            item.funcionarioAutorizadorId ? Number(item.funcionarioAutorizadorId) : null,
-    funcionario_captacao_prevenda_id:      item.funcionarioCaptacaoPrevendaId ?? null,
-    funcionario_producao_id:               item.funcionarioProducaoId ?? null,
-    setor_de_producao_id:                  item.setorDeProducaoId ? Number(item.setorDeProducaoId) : null,
-    participou_promocao_desconto:          item.participouPromocaoDesconto ?? null,
-    foi_vendido_em_oferta:                 item.foiVendidoEmOferta ?? null,
+    cupomFiscalId,
+
+    produtoId:                     item.produtoId                    ? Number(item.produtoId)                    : null,
+    codigoAuxiliarId:              item.codigoAuxiliarId             ?? null,
+    localVendaId:                  item.localVendaId                 ? Number(item.localVendaId)                 : null,
+    setorDeProducaoId:             item.setorDeProducaoId            ? Number(item.setorDeProducaoId)            : null,
+
+    funcionarioVendedorId:         item.funcionarioVendedorId        ? Number(item.funcionarioVendedorId)        : null,
+    funcionarioAutorizadorId:      item.funcionarioAutorizadorId     ? Number(item.funcionarioAutorizadorId)     : null,
+    funcionarioProducaoId:         item.funcionarioProducaoId        ?? null,
+    funcionarioCaptacaoPrevendaId: item.funcionarioCaptacaoPrevendaId ?? null,
+
+    // ── Quantidades e valores ─────────────────────────────────────────────────
+    quantidadeVenda:         n(item.quantidadeVenda)         ?? 0,
+    valorUnidade:            n(item.valorUnidade)            ?? 0,
+    valorTotal:              n(item.valorTotal)              ?? 0,
+    valorAcrescimo:          n(item.valorAcrescimo)          ?? 0,
+    valorDesconto:           n(item.valorDesconto)           ?? 0,
+    valorServico:            n(item.valorServico)            ?? 0,
+    precoVenda:              n(item.precoVenda)              ?? 0,
+    precoCusto:              n(item.precoCusto)              ?? 0,
+    precoCustoMedio:         n(item.precoCustoMedio)         ?? 0,
+    precoCustoFiscal:        n(item.precoCustoFiscal)        ?? 0,
+    fatorBonificacao:        n(item.fatorBonificacao)        ?? 0,
+    valorDoDescontoMegaCaixa: n(item.valorDoDescontoMegaCaixa) ?? 0,
+
+    // ── Tributação ────────────────────────────────────────────────────────────
+    cfop:                   item.cfop             ?? '',
+    ncm:                    item.ncm              ?? null,
+    ncmExcecao:             item.ncmExcecao       ?? null,
+    tributacao:             item.tributacao        ?? '',
+    tributacaoAliquota:     n(item.tributacaoAliquota)     ?? 0,
+    tributacaoAliquotaFecop: n(item.tributacaoAliquotaFecop),
+    tributacaoValorReducao: n(item.tributacaoValorReducao) ?? 0,
+    tributacaoSimbologia:   item.tributacaoSimbologia      ?? '',
+    aliquotaPIS:            n(item.aliquotaPIS)            ?? 0,
+    aliquotaCOFINS:         n(item.aliquotaCOFINS)         ?? 0,
+    cstPIS:                 item.cstPIS             ?? '',
+    cstCOFINS:              item.cstCOFINS          ?? '',
+    csosn:                  item.csosn              ?? null,
+    natureza:               item.natureza           ?? '',
+    tabelaA:                item.tabelaA            ?? '',
+    tabelaB:                item.tabelaB            ?? '',
+    serieProduto:           item.serieProduto       ?? '',
+    valorFecop:             n(item.valorFecop),
+    valorICMSDesonerado:    n(item.valorICMSDesonerado),
+
+    // ── Tipo / flags ──────────────────────────────────────────────────────────
+    tipo:                        item.tipo                        ?? '',
+    tipoPreco:                   item.tipoPreco                   ?? '',
+    tipoBonificacao:             item.tipoBonificacao             ?? '',
+    tipoDeDescontoAplicado:      item.tipoDeDescontoAplicado      ?? '',
+    taxaEntrega:                 Boolean(item.taxaEntrega),
+    participouPromocaoDesconto:  Boolean(item.participouPromocaoDesconto),
+    foiVendidoEmOferta:          item.foiVendidoEmOferta !== undefined ? Boolean(item.foiVendidoEmOferta) : null,
   };
 }
 
 // ─── Mapper de Finalização do Cupom ──────────────────────────────────────────
 
-export function mapFinalizacaoToDb(item: any, cupomExternalId: number) {
+export function mapFinalizacaoToDb(item: any, cupomFiscalId: number) {
   return {
-    cupom_external_id:          cupomExternalId,
-    external_finalizacao_id:    item.id ? Number(item.id) : null,
-    finalizadora_id:            item.finalizadoraId ? Number(item.finalizadoraId) : null,
-    sequencial:                 item.sequencial ?? null,
-    tipo:                       item.tipo ?? null,
-    especializacao:             item.especializacao ?? null,
-    modalidade:                 item.modalidade ?? null,
-    // valor obrigatório — n() garante number
-    valor:                      Number(item.valor ?? 0),
-    troco:                      n(item.troco),
-    tipo_troco:                 item.tipoTroco ?? null,
-    troco_doacao:               n(item.trocoDoacao),
-    bandeira:                   item.bandeira ?? null,
-    numero_cartao:              item.numeroCartao ?? null,
-    numero_bin_cartao:          item.numeroBinCartao ?? null,
-    nsu:                        item.nsu ?? null,
-    nsu_autorizacao:            item.nsuAutorizacao ?? null,
-    nsu_do_cancelamento:        item.nsuDoCancelamento ?? null,
-    autorizacao_cartao:         item.autorizacaoCartao ?? null,
-    rede_adquirente:            item.redeAdquirente ?? null,
-    local_tef:                  item.localTef ?? null,
-    quantidade_parcelas:        item.quantidadeParcelas ?? null,
-    codigo_plano:               item.codigoPlano ?? null,
-    plano_reducao:              item.planoReducao ?? null,
-    juros_plano:                n(item.jurosPlano),
-    solicita_plano:             item.solicitaPlano ?? null,
-    emitente_cheque:            item.emitenteCheque ?? null,
-    leitura_cmc7:               item.leituraCmc7 ?? null,
-    data_vencimento:            item.dataVencimento ? new Date(item.dataVencimento) : null,
-    numero_vale_compra:         item.numeroValeCompra ?? null,
-    desconto_moeda:             n(item.descontoMoeda),
-    codigo_origem:              item.codigoOrigem ?? null,
-    codigo_agente:              item.codigoAgente ?? null,
-    sangria_detalhada:          item.sangriaDetalhada ?? null,
-    verifica_limite_credito:    item.verificaLimiteCredito ?? null,
-    atualiza_limite_credito:    item.atualizaLimiteCredito ?? null,
-    gera_fidelidade:            item.geraFidelidade ?? null,
-    gera_conta_receber:         item.geraContaReceber ?? null,
-    texto_livre1:               item.textoLivre1 ?? null,
-    texto_livre2:               item.textoLivre2 ?? null,
-    texto_livre3:               item.textoLivre3 ?? null,
-    texto_livre4:               item.textoLivre4 ?? null,
+    cupomFiscalId,
+
+    finalizadoraId:     item.finalizadoraId ? Number(item.finalizadoraId) : 0,
+    sequencial:         item.sequencial     ?? null,
+
+    valor:              Number(item.valor ?? 0),
+    troco:              n(item.troco),
+    trocoDoacao:        n(item.trocoDoacao),
+    descontoMoeda:      n(item.descontoMoeda),
+    jurosPlano:         n(item.jurosPlano),
+
+    bandeira:           item.bandeira          ?? null,
+    numeroCartao:       item.numeroCartao      ?? null,
+    numeroBinCartao:    item.numeroBinCartao   ?? null,
+    redeAdquirente:     item.redeAdquirente    ?? null,
+    nsu:                item.nsu               ?? null,
+    nsuAutorizacao:     item.nsuAutorizacao    ?? null,
+    nsuDoCancelamento:  item.nsuDoCancelamento ?? null,
+    autorizacaoCartao:  item.autorizacaoCartao ?? null,
+    quantidadeParcelas: item.quantidadeParcelas ?? null,
+    codigoPlano:        item.codigoPlano        ?? null,
+    codigoAgente:       item.codigoAgente       ?? null,
+    localTef:           item.localTef           ?? null,
+
+    emitenteCheque:     item.emitenteCheque  ?? null,
+    leituraCmc7:        item.leituraCmc7     ?? null,
+
+    tipo:               item.tipo            ?? null,
+    especializacao:     item.especializacao  ?? null,
+    modalidade:         item.modalidade      ?? null,
+    tipoTroco:          item.tipoTroco       ?? '',
+    geraFidelidade:     item.geraFidelidade  ?? null,
+    geraContaReceber:   item.geraContaReceber ?? null,
+    solicitaPlano:      item.solicitaPlano   ?? null,
+    verificaLimiteCredito: item.verificaLimiteCredito ?? null,
+    atualizaLimiteCredito: item.atualizaLimiteCredito ?? null,
+    planoReducao:       item.planoReducao    ?? null,
+    sangriaDetalhada:   item.sangriaDetalhada ?? null,
+    codigoOrigem:       item.codigoOrigem    ?? null,
+    numeroValeCompra:   item.numeroValeCompra ?? null,
+    dataVencimento:     item.dataVencimento  ? new Date(item.dataVencimento).toISOString().slice(0, 10) : null,
+    textoLivre1:        item.textoLivre1     ?? null,
+    textoLivre2:        item.textoLivre2     ?? null,
+    textoLivre3:        item.textoLivre3     ?? null,
+    textoLivre4:        item.textoLivre4     ?? null,
   };
 }

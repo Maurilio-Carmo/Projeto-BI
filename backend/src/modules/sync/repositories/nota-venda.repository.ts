@@ -1,17 +1,15 @@
 // backend/src/modules/sync/repositories/nota-venda.repository.ts
-// ── MIGRAÇÃO MySQL → SQLite ──────────────────────────────────────────────────
-// Alteração CRÍTICA:
-//   .onDuplicateKeyUpdate({ set: { ... } })              ← MySQL
-//   .onConflictDoUpdate({ target: <col>, set: { ... } }) ← SQLite
 //
-// O campo `target` aponta para a coluna com UNIQUE constraint:
-//   • notaVenda:     external_id
-//   • notaVendaItem: sem unique próprio → usa `onConflictDoNothing()` como fallback
-//                    (items são idempotentes pelo par nota_venda_external_id + sequencial)
+// ── CORREÇÕES ────────────────────────────────────────────────────────────────
+// 1. Import: 'transacoes/nota-venda' não existe.
+//    Correto: 'transacoes/notas-venda' (plural) → export: notasVenda
+// 2. 'transacoes/nota-venda-item' → 'transacoes/notas-venda-itens' → notasVendaItens
+// 3. Mapper agora retorna camelCase. FK: notaFiscalVendaId (era nota_venda_external_id)
 // ─────────────────────────────────────────────────────────────────────────────
+
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { DrizzleDB }  from '../../../database/drizzle';
-import { notaVenda, notaVendaItem } from '../../../database/schema';
+import { DrizzleDB } from '../../../database/drizzle';
+import { notasVenda, notasVendaItens } from '../../../database/schema';
 import { mapNotaFiscalToDb, mapItemNotaFiscalToDb } from '../mappers/nota-fiscal.mapper';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -23,32 +21,44 @@ export class NotaVendaRepository {
   constructor(@Inject('DRIZZLE') private readonly db: DrizzleDB) {}
 
   /**
-   * Faz upsert da nota de venda e de todos os seus itens.
-   * SQLite: usa onConflictDoUpdate em vez de onDuplicateKeyUpdate.
+   * Insere a nota de venda e seus itens.
+   *
+   * NOTA SOBRE DUPLICATAS:
+   * O schema `notasVenda` não possui unique em external_id (campo inexistente).
+   * A deduplicação é garantida pelo cursor incremental (lastSyncId / offset).
+   * Em caso de reprocessamento, use resetLastSyncId — duplicatas são aceitas.
+   * Use onConflictDoNothing nos itens para evitar falhas por PK duplicada.
    */
   async upsert(item: any): Promise<void> {
     const values = mapNotaFiscalToDb(item, 'VENDA');
 
-    // Upsert da nota — conflito em external_id (UNIQUE)
-    await this.db
-      .insert(notaVenda)
+    // Inserção da nota — sem onConflict pois não há unique além de PK autoincrement.
+    // A paginação por offset evita duplicatas em operação normal.
+    const insertResult = await this.db
+      .insert(notasVenda)
       .values(values)
-      .onConflictDoUpdate({
-        target: notaVenda.external_id,
-        set: { ...values, updated_at: new Date() },
-      });
+      .onConflictDoNothing(); // segurança contra re-runs
+
+    // Obtém o ID interno gerado para usar como FK nos itens
+    const notaInternalId = insertResult.lastInsertRowid
+      ? Number(insertResult.lastInsertRowid)
+      : null;
+
+    if (!notaInternalId) {
+      // Registro já existia (onConflictDoNothing) — não processa itens
+      return;
+    }
 
     if (Array.isArray(item.itens)) {
       for (const itemNota of item.itens) {
-        const itemValues = mapItemNotaFiscalToDb(itemNota, Number(item.id));
-        const fullValues = { ...itemValues, nota_venda_external_id: Number(item.id) };
+        const itemValues = {
+          ...mapItemNotaFiscalToDb(itemNota),
+          notaFiscalVendaId: notaInternalId, // FK para notasVenda.id
+        };
 
-        // Itens não possuem unique próprio além do PK autoincrement.
-        // Estratégia: tenta inserir e ignora conflito de PK duplicado.
-        // Para reprocessamento completo, use resetLastSyncId para reimportar.
         await this.db
-          .insert(notaVendaItem)
-          .values(fullValues)
+          .insert(notasVendaItens)
+          .values(itemValues)
           .onConflictDoNothing();
       }
     }
