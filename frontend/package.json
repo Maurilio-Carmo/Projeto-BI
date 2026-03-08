@@ -1,0 +1,8 @@
+{
+  "name": "fiscalsync-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react-router-dom": "^7.13.1"
+  }
+}

@@ -1,0 +1,98 @@
+/* =========================================================
+   settings.css — Página de configurações
+   ========================================================= */
+
+.settings {
+  max-width: 100%;
+}
+
+.settings__header {
+  margin-bottom: 28px;
+}
+
+.settings__title {
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+}
+
+.settings__desc {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 13px;
+  font-family: var(--font-ui);
+}
+
+/* ---- Loading state ---- */
+.settings__loading {
+  text-align: center;
+  padding: 60px;
+  color: #444;
+  font-family: var(--font-ui);
+}
+
+/* ---- Card container ---- */
+.settings__card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+/* ---- Section heading ---- */
+.settings__section-title {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-md);
+  font-family: var(--font-ui);
+}
+
+/* ---- Entity grid: 3 colunas desktop ---- */
+.settings__entity-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Tablet (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .settings__header {
+    margin-bottom: 20px;
+  }
+
+  .settings__title {
+    font-size: 16px;
+  }
+
+  .settings__card {
+    padding: var(--space-md);
+  }
+
+  /* 2 colunas no tablet */
+  .settings__entity-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Mobile (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .settings__card {
+    padding: 14px;
+  }
+
+  /* 1 coluna no mobile */
+  .settings__entity-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

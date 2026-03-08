@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:network": "ts-node --project tsconfig.node.json start-network.ts",
+    "start:network:tsx": "tsx start-network.ts",
+    "start:backend": "node node_modules/@nestjs/cli/bin/nest.js start --watch --config backend/nest-cli.json --path backend/tsconfig.build.json",
+    "start:frontend": "node node_modules/vite/bin/vite.js --config frontend/vite.config.ts",
+    "build:backend": "node node_modules/@nestjs/cli/bin/nest.js build --config backend/nest-cli.json --path backend/tsconfig.build.json",
+    "build:frontend": "node node_modules/vite/bin/vite.js build --config frontend/vite.config.ts",
+    "build": "npm run build:backend && npm run build:frontend",
+    "db:push": "node node_modules/drizzle-kit/bin.cjs push --config backend/drizzle.config.ts",
+    "db:generate": "node node_modules/drizzle-kit/bin.cjs generate --config backend/drizzle.config.ts",
+    "db:studio": "node node_modules/drizzle-kit/bin.cjs studio --config backend/drizzle.config.ts"
+  }
+}

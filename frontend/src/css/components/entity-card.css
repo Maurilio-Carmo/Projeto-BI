@@ -1,0 +1,201 @@
+/* =========================================================
+   entity-card.css — Card de entidade no monitor
+   ========================================================= */
+
+.entity-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+/* ---- Header ---- */
+.entity-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  gap: 8px;
+}
+
+.entity-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.entity-card__icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.entity-card__name {
+  font-weight: 700;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-card__status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.entity-card__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.entity-card__dot--active {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.entity-card__status-label {
+  font-size: 11px;
+  font-family: var(--font-ui);
+  color: var(--text-muted);
+}
+
+.entity-card__status-label--active {
+  color: var(--accent);
+}
+
+/* ---- Sync button ---- */
+.entity-card__sync-btn {
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.entity-card__sync-btn:disabled {
+  background: #1a1a1a;
+  border-color: #333;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ---- Metrics grid ---- */
+.entity-card__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: var(--space-md);
+}
+
+.entity-card__metric {
+  background: var(--bg-deep);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.entity-card__metric-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: var(--font-ui);
+}
+
+.entity-card__metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+/* ---- Last sync detail ---- */
+.entity-card__detail {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.entity-card__detail-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entity-card__detail-text {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+/* ---- Error message ---- */
+.entity-card__error {
+  margin-top: 8px;
+  background: rgba(255, 68, 68, 0.08);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--error);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Tablet (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .entity-card {
+    padding: 16px;
+  }
+
+  .entity-card__metric-value {
+    font-size: 18px;
+  }
+
+  .entity-card__sync-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Mobile (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .entity-card {
+    padding: 14px;
+  }
+
+  /* Botão de sync largura total no mobile */
+  .entity-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .entity-card__sync-btn {
+    width: 100%;
+    text-align: center;
+    padding: 8px;
+  }
+
+  .entity-card__metric-value {
+    font-size: 20px;
+  }
+
+  .entity-card__metrics {
+    gap: 8px;
+  }
+}

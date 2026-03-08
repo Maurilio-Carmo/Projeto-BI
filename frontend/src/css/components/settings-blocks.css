@@ -1,0 +1,379 @@
+/* =========================================================
+   settings-blocks.css — CredencialBlock e EntitySyncBlock
+   ========================================================= */
+
+/* ============================================================
+   SHARED
+   ============================================================ */
+.field-label {
+  display: block;
+  color: #666;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-input:focus {
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+.field-input--padded-right {
+  padding-right: 44px;
+}
+
+.field-group {
+  position: relative;
+}
+
+.field-group__toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.field-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* ---- Feedback ---- */
+.feedback {
+  font-size: 11px;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+}
+
+.feedback--ok    { color: var(--accent); }
+.feedback--error { color: var(--error); }
+
+/* ---- Action row (credencial block) ---- */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  transition: background 0.15s, opacity 0.15s;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.3);
+  color: var(--accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: rgba(0, 255, 136, 0.16);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.btn--danger {
+  background: rgba(255, 68, 68, 0.08);
+  border-color: rgba(255, 68, 68, 0.3);
+  color: var(--error);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: rgba(255, 68, 68, 0.15);
+}
+
+/* ============================================================
+   CREDENCIAL BLOCK
+   ============================================================ */
+.credencial-block {
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.credencial-block__title {
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+}
+
+/* ============================================================
+   ENTITY SYNC BLOCK — card compacto
+   ============================================================ */
+.entity-sync-block {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- Cabeçalho: nome + toggle ---- */
+.entity-sync-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.entity-sync-block__name {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+}
+
+/* ---- Linha de controles: intervalo + id + botões ---- */
+.entity-sync-block__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.entity-sync-block__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.entity-sync-block__field--interval {
+  flex: 0 0 110px;
+}
+
+.entity-sync-block__field--syncid {
+  flex: 1 1 60px;
+  min-width: 50px;
+}
+
+.entity-sync-block__select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.entity-sync-block__select:focus {
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+/* ---- Botões sempre na mesma linha ---- */
+.entity-sync-block__actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-bottom: 1px;
+}
+
+/* ---- Readonly sync id ---- */
+.sync-id-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---- Feedback abaixo da linha ---- */
+.entity-sync-block__feedback {
+  font-size: 11px;
+  font-family: var(--font-ui);
+  min-height: 14px;
+}
+
+/* ---- Toggle switch ---- */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle__slider {
+  position: absolute;
+  inset: 0;
+  background: #333;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle__slider::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #888;
+  border-radius: 50%;
+  left: 3px;
+  top: 3px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.toggle__input:checked + .toggle__slider {
+  background: rgba(0, 255, 136, 0.25);
+}
+
+.toggle__input:checked + .toggle__slider::before {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Tablet (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Credencial: inputs em coluna no tablet estreito */
+  .field-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .credencial-block {
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+  }
+
+  .entity-sync-block {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  /* Linha de controles: permite quebra no tablet */
+  .entity-sync-block__row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .entity-sync-block__field--interval {
+    flex: 1 1 120px;
+  }
+
+  .entity-sync-block__field--syncid {
+    flex: 1 1 80px;
+  }
+
+  .entity-sync-block__actions {
+    flex: 1 1 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Mobile (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .entity-sync-block {
+    padding: 12px;
+  }
+
+  /* Empilha completamente no mobile */
+  .entity-sync-block__row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .entity-sync-block__field--interval,
+  .entity-sync-block__field--syncid {
+    flex: none;
+    width: 100%;
+  }
+
+  .entity-sync-block__actions {
+    width: 100%;
+    padding-bottom: 0;
+    /* mantém flex-direction: row — botões sempre na mesma linha */
+  }
+
+  /* Botões de credencial largura total */
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-row .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .field-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+
+

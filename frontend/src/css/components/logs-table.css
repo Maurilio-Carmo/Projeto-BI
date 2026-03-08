@@ -1,0 +1,133 @@
+/* =========================================================
+   logs-table.css — Tabela de histórico de execuções
+   ========================================================= */
+
+.logs-table {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ---- Header ---- */
+.logs-table__header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logs-table__title {
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+}
+
+/* ---- Scroll wrapper ---- */
+.logs-table__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Table ---- */
+.logs-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px; /* garante scroll horizontal antes de quebrar */
+}
+
+/* ---- Head row ---- */
+.logs-table__thead {
+  background: var(--bg-deep);
+}
+
+.logs-table__th {
+  padding: 10px 16px;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+}
+
+/* ---- Body rows ---- */
+.logs-table__tr {
+  transition: background 0.1s;
+}
+
+.logs-table__tr:hover {
+  background: #1a1a1a;
+}
+
+.logs-table__td {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  vertical-align: middle;
+  border-top: 1px solid var(--border-subtle);
+  color: #666;
+  white-space: nowrap;
+}
+
+.logs-table__td--primary {
+  color: var(--text-primary);
+}
+
+/* ---- Empty state ---- */
+.logs-table__empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-disabled);
+  font-family: var(--font-ui);
+}
+
+/* ---- Entity label inside td ---- */
+.logs-table__entity-label {
+  font-weight: 600;
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Tablet (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .logs-table__header {
+    padding: 16px;
+  }
+
+  .logs-table__title {
+    font-size: 14px;
+  }
+
+  .logs-table__th {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+
+  .logs-table__td {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Mobile (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .logs-table__header {
+    padding: 14px;
+  }
+
+  /* Reduz padding para caber mais conteúdo no scroll */
+  .logs-table__th,
+  .logs-table__td {
+    padding: 8px 10px;
+  }
+
+  .logs-table__empty {
+    padding: 24px 16px;
+    font-size: 13px;
+  }
+}

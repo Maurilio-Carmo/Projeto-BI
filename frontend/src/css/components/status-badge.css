@@ -1,0 +1,34 @@
+/* =========================================================
+   status-badge.css — Badge de status de execução
+   ========================================================= */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border: 1px solid transparent;
+}
+
+/* ---- Variantes ---- */
+.status-badge--success {
+  background: rgba(0, 255, 136, 0.15);
+  color: var(--accent);
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.status-badge--error {
+  background: rgba(255, 68, 68, 0.15);
+  color: var(--error);
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+.status-badge--running {
+  background: rgba(255, 184, 0, 0.15);
+  color: var(--warning);
+  border-color: rgba(255, 184, 0, 0.3);
+  animation: pulse 1.5s infinite;
+}

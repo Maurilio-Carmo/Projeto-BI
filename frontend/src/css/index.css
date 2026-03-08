@@ -1,0 +1,21 @@
+/* =========================================================
+   index.css — Entry point do sistema de estilos
+   Importa todos os módulos CSS
+   ========================================================= */
+
+/* 1. Base */
+@import './base/variables.css';
+@import './base/animations.css';
+
+/* 2. Layout */
+@import './layout/layout.css';
+
+/* 3. Páginas */
+@import './page/monitor.css';
+@import './page/settings.css';
+
+/* 4. Componentes */
+@import './components/status-badge.css';
+@import './components/entity-card.css';
+@import './components/logs-table.css';
+@import './components/settings-blocks.css';

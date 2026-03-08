@@ -1,0 +1,100 @@
+/* =========================================================
+   variables.css — Design tokens e reset global
+   ========================================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Backgrounds */
+  --bg-primary:  #0D0D0D;
+  --bg-surface:  #161616;
+  --bg-elevated: #1E1E1E;
+  --bg-deep:     #0D0D0D;
+
+  /* Borders */
+  --border:        #2A2A2A;
+  --border-subtle: #1A1A1A;
+
+  /* Text */
+  --text-primary:   #E8E8E8;
+  --text-secondary: #888;
+  --text-muted:     #555;
+  --text-disabled:  #333;
+
+  /* Accent / status */
+  --accent:   #00FF88;
+  --error:    #FF4444;
+  --warning:  #FFB800;
+  --purple:   #8B5CF6;
+
+  /* Entity colors */
+  --entity-venda-accent:  #00FF88;
+  --entity-venda-bg:      rgba(0, 255, 136, 0.08);
+  --entity-venda-border:  rgba(0, 255, 136, 0.2);
+
+  --entity-compra-accent: #FFB800;
+  --entity-compra-bg:     rgba(255, 184, 0, 0.08);
+  --entity-compra-border: rgba(255, 184, 0, 0.2);
+
+  --entity-cupom-accent:  #8B5CF6;
+  --entity-cupom-bg:      rgba(139, 92, 246, 0.08);
+  --entity-cupom-border:  rgba(139, 92, 246, 0.2);
+
+  /* Typography */
+  --font-ui:   'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Spacing */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+}
+
+html, body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button:focus-visible {
+  outline: 2px solid rgba(0, 255, 136, 0.5);
+  outline-offset: 2px;
+}
+
+select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #E8E8E8;
+  -webkit-box-shadow: 0 0 0 1000px #0D0D0D inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+::-webkit-scrollbar         { width: 6px; height: 6px; }
+::-webkit-scrollbar-track   { background: #111; }
+::-webkit-scrollbar-thumb   { background: #2A2A2A; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }

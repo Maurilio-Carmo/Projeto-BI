@@ -1,0 +1,163 @@
+/* =========================================================
+   layout.css — App shell, navbar e estrutura de página
+   ========================================================= */
+
+/* ---- App wrapper ---- */
+.app {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  font-family: var(--font-ui);
+}
+
+/* ---- Navbar ---- */
+.navbar {
+  background: #111111;
+  border-bottom: 1px solid #1E1E1E;
+  padding: 0 var(--space-lg);
+  display: flex;
+  align-items: center;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 40px;
+}
+
+.navbar__logo-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 255, 136, 0.15);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.navbar__logo-text {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.navbar__logo-text span {
+  color: var(--accent);
+}
+
+.navbar__tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.navbar__tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: var(--font-ui);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.navbar__tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.navbar__tab--active {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.2);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.navbar__version {
+  margin-left: auto;
+  color: #333;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+/* ---- Page content ---- */
+.page-content {
+  padding: var(--space-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Tablet (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 var(--space-md);
+    height: 52px;
+  }
+
+  .navbar__logo {
+    margin-right: 16px;
+  }
+
+  /* Esconde a versão no tablet */
+  .navbar__version {
+    display: none;
+  }
+
+  .page-content {
+    padding: var(--space-md);
+  }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — Mobile (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 12px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 52px;
+    gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .navbar__logo {
+    margin-right: 0;
+  }
+
+  /* Tabs ocupam linha própria no mobile */
+  .navbar__tabs {
+    order: 3;
+    width: 100%;
+    border-top: 1px solid #1E1E1E;
+    padding-top: 8px;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+
+  .navbar__tab {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+}
