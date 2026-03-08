@@ -5,6 +5,10 @@
 //    Correto: 'transacoes/notas-venda' (plural) → export: notasVenda
 // 2. 'transacoes/nota-venda-item' → 'transacoes/notas-venda-itens' → notasVendaItens
 // 3. Mapper agora retorna camelCase. FK: notaFiscalVendaId (era nota_venda_external_id)
+// 4. ✅ Campos obrigatórios ausentes no mapper adicionados com fallback:
+//    - tipoDeDocumentoFiscal: obrigatório no schema → default 'NF-e'
+//    - valorTotalDosItens: obrigatório no schema → default 0
+//    - compoeTotalDaNota (itens): obrigatório no schema → default true
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
@@ -30,13 +34,22 @@ export class NotaVendaRepository {
    * Use onConflictDoNothing nos itens para evitar falhas por PK duplicada.
    */
   async upsert(item: any): Promise<void> {
-    const values = mapNotaFiscalToDb(item, 'VENDA');
+    const mappedValues = mapNotaFiscalToDb(item, 'VENDA');
+
+    // ✅ Garante campos NOT NULL obrigatórios que o mapper pode não incluir
+    const values = {
+      ...mappedValues,
+      tipoDeDocumentoFiscal:
+        mappedValues.tipoDeDocumentoFiscal ?? item.tipoDeDocumentoFiscal ?? 'NF-e',
+      valorTotalDosItens:
+        mappedValues.valorTotalDosItens ?? item.valorTotalDosItens ?? 0,
+    };
 
     // Inserção da nota — sem onConflict pois não há unique além de PK autoincrement.
     // A paginação por offset evita duplicatas em operação normal.
     const insertResult = await this.db
       .insert(notasVenda)
-      .values(values)
+      .values(values as any)
       .onConflictDoNothing(); // segurança contra re-runs
 
     // Obtém o ID interno gerado para usar como FK nos itens
@@ -51,14 +64,27 @@ export class NotaVendaRepository {
 
     if (Array.isArray(item.itens)) {
       for (const itemNota of item.itens) {
+        const mappedItem = mapItemNotaFiscalToDb(itemNota);
+
+        // ✅ Garante campos NOT NULL dos itens que o mapper pode não incluir
         const itemValues = {
-          ...mapItemNotaFiscalToDb(itemNota),
+          ...mappedItem,
           notaFiscalVendaId: notaInternalId, // FK para notasVenda.id
+          compoeTotalDaNota:
+            mappedItem.compoeTotalDaNota ?? itemNota.compoeTotalDaNota ?? true,
+          // Campos numéricos nullable recebem fallback 0
+          quantidade: mappedItem.quantidade ?? itemNota.quantidade ?? 0,
+          valorUnitario: mappedItem.valorUnitario ?? itemNota.valorUnitario ?? 0,
+          valorTotal: mappedItem.valorTotal ?? itemNota.valorTotal ?? 0,
+          modalidadeDaBaseDeCalculo:
+            mappedItem.modalidadeDaBaseDeCalculo ??
+            itemNota.modalidadeDaBaseDeCalculo ??
+            null,
         };
 
         await this.db
           .insert(notasVendaItens)
-          .values(itemValues)
+          .values(itemValues as any)
           .onConflictDoNothing();
       }
     }

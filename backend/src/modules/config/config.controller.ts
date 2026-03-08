@@ -34,8 +34,9 @@ export class ConfigController {
   async create(@Body() dto: CreateSyncConfigDto) {
     const result = await this.configService.create(dto);
 
-    if (result?.is_active) {
-      await this.syncScheduler.reloadJob(result.entity_type);
+    // ✅ Corrigido: is_active → isActive / entity_type → entityType
+    if (result?.isActive) {
+      await this.syncScheduler.reloadJob(result.entityType);
     }
 
     return result;
@@ -46,7 +47,9 @@ export class ConfigController {
     const result = await this.configService.update(id, dto);
 
     if (!result) return result;
-    await this.syncScheduler.reloadJob(result.entity_type);
+
+    // ✅ Corrigido: entity_type → entityType
+    await this.syncScheduler.reloadJob(result.entityType);
 
     return result;
   }
@@ -56,8 +59,9 @@ export class ConfigController {
   async resetLastSyncId(@Param('id', ParseIntPipe) id: number) {
     const result = await this.configService.resetLastSyncId(id);
 
-    if (result.is_active) {
-      await this.syncScheduler.reloadJob(result.entity_type);
+    // ✅ Corrigido: is_active → isActive / entity_type → entityType
+    if (result.isActive) {
+      await this.syncScheduler.reloadJob(result.entityType);
     }
 
     return result;
@@ -67,12 +71,13 @@ export class ConfigController {
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number) {
     const configs = await this.configService.findAll();
-    const config  = configs.find((c: SyncConfig) => c.id === id);
+    const config = configs.find((c: SyncConfig) => c.id === id);
 
     const result = await this.configService.remove(id);
 
     if (config) {
-      this.syncScheduler.removeJob(config.entity_type);
+      // ✅ Corrigido: entity_type → entityType
+      this.syncScheduler.removeJob(config.entityType);
     }
 
     return result;
