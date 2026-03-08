@@ -1,268 +1,249 @@
 // backend/src/database/schema/nota-venda.ts
+// ── MIGRAÇÃO MySQL → SQLite ──────────────────────────────────────────────────
+// Conversões aplicadas em TODOS os campos:
+//   mysqlTable            → sqliteTable
+//   int().autoincrement() → integer().primaryKey({ autoIncrement: true })
+//   bigint({mode:'number'})→ integer
+//   varchar(x,{length})   → text
+//   decimal(p,s)          → real   (SQLite armazena como float de 64 bits)
+//   date / timestamp      → integer({ mode: 'timestamp' })
+//   boolean               → integer({ mode: 'boolean' })
+//   mysqlEnum             → text({ enum: [...] })
+//   ON UPDATE CURRENT_TIMESTAMP → removido (não existe no SQLite;
+//     os services já passam updated_at: new Date() explicitamente)
+//   sql`CURRENT_TIMESTAMP` → sql`(unixepoch())`
+// ─────────────────────────────────────────────────────────────────────────────
 import {
-  mysqlTable,
-  int,
-  bigint,
-  varchar,
-  decimal,
-  date,
-  boolean,
-  timestamp,
-  mysqlEnum,
-  index,
+  sqliteTable,
+  integer,
+  real,
   text,
-} from 'drizzle-orm/mysql-core';
+  index,
+} from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-/**
- * Tabela de Notas Fiscais de VENDA (NF-e / NFC-e)
- * Campos mapeados diretamente da API: GET /v1/venda/notas-fiscais
- */
-export const notaVenda = mysqlTable(
+// ─── Nota Fiscal de VENDA ────────────────────────────────────────────────────
+
+export const notaVenda = sqliteTable(
   'nota_venda',
   {
-    id: int('id').autoincrement().primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // ID original na API externa (campo `id` do objeto NotaFiscal)
-    external_id: bigint('external_id', { mode: 'number' }).notNull().unique(),
+    external_id: integer('external_id').notNull().unique(),
 
-    // Identificação do documento
-    numero_nota: varchar('numero_nota', { length: 20 }).notNull(),
-    serie: varchar('serie', { length: 10 }),
-    chave_nfe: varchar('chave_nfe', { length: 44 }).unique(),
+    // Identificação
+    numero_nota:           text('numero_nota').notNull(),
+    serie:                 text('serie'),
+    chave_nfe:             text('chave_nfe').unique(),
 
-    // Situação / Status
-    situacao: mysqlEnum('situacao', [
-      'INCONSISTENTE', 'RECUSADA', 'PRE_EFETIVADA', 'EFETIVADA', 'COM_ERRO',
-      'INUTILIZADA', 'DENEGADA', 'PRE_CANCELADA', 'CANCELADA', 'PRE_ESTORNADA',
-      'ESTORNADA', 'PENDENTE', 'PENDENTE_ATENDIMENTO', 'PENDENTE_CONFERENCIA',
-      'PENDENTE_RECEPCAO', 'PENDENTE_INCONFORME', 'EXCLUIDA', 'PRE_INUTILIZADA',
-      'CANCELADA_EXTEMPORANEO', 'PENDENTE_ENTREGA',
-    ]).notNull().default('PENDENTE'),
+    // Situação
+    situacao: text('situacao', {
+      enum: [
+        'INCONSISTENTE','RECUSADA','PRE_EFETIVADA','EFETIVADA','COM_ERRO',
+        'INUTILIZADA','DENEGADA','PRE_CANCELADA','CANCELADA','PRE_ESTORNADA',
+        'ESTORNADA','PENDENTE','PENDENTE_ATENDIMENTO','PENDENTE_CONFERENCIA',
+        'PENDENTE_RECEPCAO','PENDENTE_INCONFORME','EXCLUIDA','PRE_INUTILIZADA',
+        'CANCELADA_EXTEMPORANEO','PENDENTE_ENTREGA',
+      ],
+    })
+      .notNull()
+      .default('PENDENTE'),
 
-    // Tipo de documento fiscal
-    tipo_documento_fiscal: varchar('tipo_documento_fiscal', { length: 20 }),
-    // NFE, NFCE, NF, CUPOM_FISCAL, CTE, MDFE, CFE, etc.
-
-    // Tipo de operação: ENTRADA ou SAIDA
-    tipo_de_operacao: mysqlEnum('tipo_de_operacao', ['ENTRADA', 'SAIDA']),
-
-    // Modalidade: SIMPLIFICADA, ESTORNO, DEVOLUCAO, TRANSFERENCIA, NORMAL, COMPLEMENTAR, CUPOM
-    modalidade: varchar('modalidade', { length: 30 }),
-
-    // Processo de emissão
-    processo_de_emissao: varchar('processo_de_emissao', { length: 60 }),
-
-    // Tipo de geração: IMPORTADA, IMPORTADA_AUTOMATICAMENTE, MANUAL, IMPORTADA_PDV, etc.
-    tipo_de_geracao: varchar('tipo_de_geracao', { length: 60 }),
-
-    // Classificação: COMPRA ou VENDA
-    classificacao: mysqlEnum('classificacao', ['COMPRA', 'VENDA']).default('VENDA'),
+    tipo_documento_fiscal: text('tipo_documento_fiscal'),
+    tipo_de_operacao:      text('tipo_de_operacao', { enum: ['ENTRADA', 'SAIDA'] }),
+    modalidade:            text('modalidade'),
+    processo_de_emissao:   text('processo_de_emissao'),
+    tipo_de_geracao:       text('tipo_de_geracao'),
+    classificacao:         text('classificacao', { enum: ['COMPRA', 'VENDA'] }).default('VENDA'),
 
     // Datas
-    data_emissao: date('data_emissao').notNull(),
-    data_operacao: date('data_operacao'),
-    data_exclusao: date('data_exclusao'),
-    data_alteracao: date('data_alteracao'),
-    data_posto_fiscal: date('data_posto_fiscal'),
+    data_emissao:       integer('data_emissao', { mode: 'timestamp' }).notNull(),
+    data_operacao:      integer('data_operacao', { mode: 'timestamp' }),
+    data_exclusao:      integer('data_exclusao', { mode: 'timestamp' }),
+    data_alteracao:     integer('data_alteracao', { mode: 'timestamp' }),
+    data_posto_fiscal:  integer('data_posto_fiscal', { mode: 'timestamp' }),
 
     // Valores financeiros
-    valor_do_documento: decimal('valor_do_documento', { precision: 15, scale: 4 }).notNull(),
-    valor_total_dos_itens: decimal('valor_total_dos_itens', { precision: 15, scale: 4 }),
-    valor_do_desconto: decimal('valor_do_desconto', { precision: 15, scale: 4 }),
-    valor_de_outras_despesas: decimal('valor_de_outras_despesas', { precision: 15, scale: 4 }),
-    valor_do_frete: decimal('valor_do_frete', { precision: 15, scale: 4 }),
-    valor_do_seguro: decimal('valor_do_seguro', { precision: 15, scale: 4 }),
+    valor_do_documento:                              real('valor_do_documento').notNull(),
+    valor_total_dos_itens:                           real('valor_total_dos_itens'),
+    valor_do_desconto:                               real('valor_do_desconto'),
+    valor_de_outras_despesas:                        real('valor_de_outras_despesas'),
+    valor_do_frete:                                  real('valor_do_frete'),
+    valor_do_seguro:                                 real('valor_do_seguro'),
 
     // Tributação na nota
-    valor_do_icms: decimal('valor_do_icms', { precision: 15, scale: 4 }),
-    valor_do_icms_substituicao_tributaria: decimal('valor_do_icms_substituicao_tributaria', { precision: 15, scale: 4 }),
-    valor_do_icms_desonerado: decimal('valor_do_icms_desonerado', { precision: 15, scale: 4 }),
-    valor_do_ipi: decimal('valor_do_ipi', { precision: 15, scale: 4 }),
-    valor_do_pis: decimal('valor_do_pis', { precision: 15, scale: 4 }),
-    valor_do_cofins: decimal('valor_do_cofins', { precision: 15, scale: 4 }),
-    valor_do_dae: decimal('valor_do_dae', { precision: 15, scale: 4 }),
-    valor_fecop: decimal('valor_fecop', { precision: 15, scale: 4 }),
-    valor_fecop_substituicao_tributaria: decimal('valor_fecop_substituicao_tributaria', { precision: 15, scale: 4 }),
+    valor_do_icms:                                   real('valor_do_icms'),
+    valor_do_icms_substituicao_tributaria:           real('valor_do_icms_substituicao_tributaria'),
+    valor_do_icms_desonerado:                        real('valor_do_icms_desonerado'),
+    valor_do_ipi:                                    real('valor_do_ipi'),
+    valor_do_pis:                                    real('valor_do_pis'),
+    valor_do_cofins:                                 real('valor_do_cofins'),
+    valor_do_dae:                                    real('valor_do_dae'),
+    valor_fecop:                                     real('valor_fecop'),
+    valor_fecop_substituicao_tributaria:             real('valor_fecop_substituicao_tributaria'),
 
     // Base de cálculo
-    base_de_calculo_do_icms: decimal('base_de_calculo_do_icms', { precision: 15, scale: 4 }),
-    base_de_calculo_do_icms_substituicao_tributaria: decimal('base_de_calculo_do_icms_substituicao_tributaria', { precision: 15, scale: 4 }),
-    base_de_calculo_fecop: decimal('base_de_calculo_fecop', { precision: 15, scale: 4 }),
-    base_de_calculo_fecop_substituicao_tributaria: decimal('base_de_calculo_fecop_substituicao_tributaria', { precision: 15, scale: 4 }),
+    base_de_calculo_do_icms:                                      real('base_de_calculo_do_icms'),
+    base_de_calculo_do_icms_substituicao_tributaria:              real('base_de_calculo_do_icms_substituicao_tributaria'),
+    base_de_calculo_fecop:                                        real('base_de_calculo_fecop'),
+    base_de_calculo_fecop_substituicao_tributaria:                real('base_de_calculo_fecop_substituicao_tributaria'),
 
     // IDs relacionados
-    loja_id: bigint('loja_id', { mode: 'number' }),
-    cliente_id: bigint('cliente_id', { mode: 'number' }),
-    fornecedor_id: bigint('fornecedor_id', { mode: 'number' }),
-    local_id: bigint('local_id', { mode: 'number' }),
-    operacao_id: bigint('operacao_id', { mode: 'number' }),
-    cfop_id: bigint('cfop_id', { mode: 'number' }),
-    funcionario_emissor_id: bigint('funcionario_emissor_id', { mode: 'number' }),
-    funcionario_comprador_id: bigint('funcionario_comprador_id', { mode: 'number' }),
+    loja_id:                  integer('loja_id'),
+    cliente_id:               integer('cliente_id'),
+    fornecedor_id:            integer('fornecedor_id'),
+    local_id:                 integer('local_id'),
+    operacao_id:              integer('operacao_id'),
+    cfop_id:                  integer('cfop_id'),
+    funcionario_emissor_id:   integer('funcionario_emissor_id'),
+    funcionario_comprador_id: integer('funcionario_comprador_id'),
 
-    // Frete
-    tipo_de_frete: varchar('tipo_de_frete', { length: 30 }),
+    // Frete e pagamento
+    tipo_de_frete:       text('tipo_de_frete'),
+    condicao_de_pagamento: text('condicao_de_pagamento'),
 
-    // Condição de pagamento
-    condicao_de_pagamento: varchar('condicao_de_pagamento', { length: 20 }),
+    // Flags
+    atualiza_estoque: integer('atualiza_estoque', { mode: 'boolean' }),
+    atualiza_custo:   integer('atualiza_custo',   { mode: 'boolean' }),
+    gera_fiscal:      integer('gera_fiscal',      { mode: 'boolean' }),
+    compoe_abc:       integer('compoe_abc',       { mode: 'boolean' }),
 
-    // Flags booleanas
-    atualiza_estoque: boolean('atualiza_estoque'),
-    atualiza_custo: boolean('atualiza_custo'),
-    gera_fiscal: boolean('gera_fiscal'),
-    compoe_abc: boolean('compoe_abc'),
-
-    // Observação
     observacao: text('observacao'),
 
-    created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updated_at: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
+    created_at: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+
+    updated_at: integer('updated_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
   },
   (table) => ({
-    externalIdIdx: index('idx_nv_external_id').on(table.external_id),
+    externalIdIdx:  index('idx_nv_external_id').on(table.external_id),
     dataEmissaoIdx: index('idx_nv_data_emissao').on(table.data_emissao),
-    situacaoIdx: index('idx_nv_situacao').on(table.situacao),
-    lojaIdIdx: index('idx_nv_loja_id').on(table.loja_id),
-    chaveNfeIdx: index('idx_nv_chave_nfe').on(table.chave_nfe),
+    situacaoIdx:    index('idx_nv_situacao').on(table.situacao),
+    lojaIdIdx:      index('idx_nv_loja_id').on(table.loja_id),
+    chaveNfeIdx:    index('idx_nv_chave_nfe').on(table.chave_nfe),
   }),
 );
 
-export type NotaVenda = typeof notaVenda.$inferSelect;
+export type NotaVenda    = typeof notaVenda.$inferSelect;
 export type NewNotaVenda = typeof notaVenda.$inferInsert;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Itens da Nota de VENDA ──────────────────────────────────────────────────
 
-/**
- * Tabela de Itens das Notas Fiscais de VENDA
- * Campos mapeados de ItemNotaFiscal na API: /v1/venda/notas-fiscais
- */
-export const notaVendaItem = mysqlTable(
+export const notaVendaItem = sqliteTable(
   'nota_venda_item',
   {
-    id: int('id').autoincrement().primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK para nota_venda (external_id da nota)
-    nota_venda_external_id: bigint('nota_venda_external_id', { mode: 'number' }).notNull(),
-
-    // ID do item na API (campo `id` de ItemNotaFiscal)
-    external_item_id: bigint('external_item_id', { mode: 'number' }),
-
-    // Sequencial do item na nota
-    sequencial: bigint('sequencial', { mode: 'number' }),
+    nota_venda_external_id: integer('nota_venda_external_id').notNull(),
+    external_item_id:       integer('external_item_id'),
+    sequencial:             integer('sequencial'),
 
     // Produto
-    produto_id: bigint('produto_id', { mode: 'number' }),
-    ncm: varchar('ncm', { length: 8 }),
-    cest: varchar('cest', { length: 8 }),
-    cfop_id: bigint('cfop_id', { mode: 'number' }),
-    unidade_de_medida: varchar('unidade_de_medida', { length: 3 }),
-    numero_pedido: varchar('numero_pedido', { length: 50 }),
-    sequencial_item_pedido: varchar('sequencial_item_pedido', { length: 20 }),
+    produto_id:              integer('produto_id'),
+    ncm:                     text('ncm'),
+    cest:                    text('cest'),
+    cfop_id:                 integer('cfop_id'),
+    unidade_de_medida:       text('unidade_de_medida'),
+    numero_pedido:           text('numero_pedido'),
+    sequencial_item_pedido:  text('sequencial_item_pedido'),
 
     // Quantidades
-    quantidade: decimal('quantidade', { precision: 15, scale: 4 }),
-    quantidade_de_itens_na_unidade: decimal('quantidade_de_itens_na_unidade', { precision: 15, scale: 4 }),
-    quantidade_completa: decimal('quantidade_completa', { precision: 15, scale: 4 }),
+    quantidade:                       real('quantidade'),
+    quantidade_de_itens_na_unidade:   real('quantidade_de_itens_na_unidade'),
+    quantidade_completa:              real('quantidade_completa'),
 
     // Valores
-    valor_da_embalagem: decimal('valor_da_embalagem', { precision: 15, scale: 4 }),
-    valor_total_do_item: decimal('valor_total_do_item', { precision: 15, scale: 4 }),
-    valor_do_frete: decimal('valor_do_frete', { precision: 15, scale: 4 }),
-    valor_do_seguro: decimal('valor_do_seguro', { precision: 15, scale: 4 }),
-    valor_outras_despesas: decimal('valor_outras_despesas', { precision: 15, scale: 4 }),
+    valor_da_embalagem:       real('valor_da_embalagem'),
+    valor_total_do_item:      real('valor_total_do_item'),
+    valor_do_frete:           real('valor_do_frete'),
+    valor_do_seguro:          real('valor_do_seguro'),
+    valor_outras_despesas:    real('valor_outras_despesas'),
 
     // Desconto
-    percentual_do_desconto: decimal('percentual_do_desconto', { precision: 10, scale: 4 }),
-    valor_do_desconto_tributado: decimal('valor_do_desconto_tributado', { precision: 15, scale: 4 }),
-    valor_do_desconto_nao_tributado: decimal('valor_do_desconto_nao_tributado', { precision: 15, scale: 4 }),
+    percentual_do_desconto:          real('percentual_do_desconto'),
+    valor_do_desconto_tributado:     real('valor_do_desconto_tributado'),
+    valor_do_desconto_nao_tributado: real('valor_do_desconto_nao_tributado'),
 
     // ICMS
-    tributacao: varchar('tributacao', { length: 3 }),
-    csosn: varchar('csosn', { length: 80 }),
-    aliquota_do_icms: decimal('aliquota_do_icms', { precision: 10, scale: 4 }),
-    aliquota_no_simples: decimal('aliquota_no_simples', { precision: 10, scale: 4 }),
-    aliquota_estadual: decimal('aliquota_estadual', { precision: 10, scale: 4 }),
-    aliquota_nacional: decimal('aliquota_nacional', { precision: 10, scale: 4 }),
-    aliquota_importado: decimal('aliquota_importado', { precision: 10, scale: 4 }),
-    aliquota_do_icms_de_venda: decimal('aliquota_do_icms_de_venda', { precision: 10, scale: 4 }),
-    base_de_calculo_do_icms: decimal('base_de_calculo_do_icms', { precision: 15, scale: 4 }),
-    valor_do_icms: decimal('valor_do_icms', { precision: 15, scale: 4 }),
-    valor_do_icms_no_simples: decimal('valor_do_icms_no_simples', { precision: 15, scale: 4 }),
-    valor_do_icms_desonerado: decimal('valor_do_icms_desonerado', { precision: 15, scale: 4 }),
-    valor_icms_diferimento: decimal('valor_icms_diferimento', { precision: 15, scale: 4 }),
-    percentual_diferimento: decimal('percentual_diferimento', { precision: 10, scale: 4 }),
-    motivo_desoneracao: varchar('motivo_desoneracao', { length: 50 }),
-    codigo_beneficio_fiscal: varchar('codigo_beneficio_fiscal', { length: 20 }),
+    tributacao:                              text('tributacao'),
+    csosn:                                   text('csosn'),
+    aliquota_do_icms:                        real('aliquota_do_icms'),
+    aliquota_no_simples:                     real('aliquota_no_simples'),
+    aliquota_estadual:                       real('aliquota_estadual'),
+    aliquota_nacional:                       real('aliquota_nacional'),
+    aliquota_importado:                      real('aliquota_importado'),
+    aliquota_do_icms_de_venda:               real('aliquota_do_icms_de_venda'),
+    base_de_calculo_do_icms:                 real('base_de_calculo_do_icms'),
+    valor_do_icms:                           real('valor_do_icms'),
+    valor_do_icms_no_simples:                real('valor_do_icms_no_simples'),
+    valor_do_icms_desonerado:                real('valor_do_icms_desonerado'),
 
     // ICMS ST
-    aliquota_do_icms_com_substituicao_tributaria: decimal('aliquota_do_icms_com_substituicao_tributaria', { precision: 10, scale: 4 }),
-    aliquota_do_icms_antecipado: decimal('aliquota_do_icms_antecipado', { precision: 10, scale: 4 }),
-    percentual_de_agregacao: decimal('percentual_de_agregacao', { precision: 10, scale: 4 }),
-    percentual_reducao_da_substituicao_tributaria: decimal('percentual_reducao_da_substituicao_tributaria', { precision: 10, scale: 4 }),
-    base_de_calculo_do_icms_com_substituicao_tributaria: decimal('base_de_calculo_do_icms_com_substituicao_tributaria', { precision: 15, scale: 4 }),
-    valor_do_icms_com_substituicao_tributaria: decimal('valor_do_icms_com_substituicao_tributaria', { precision: 15, scale: 4 }),
-    valor_do_icms_antecipado: decimal('valor_do_icms_antecipado', { precision: 15, scale: 4 }),
-    percentual_tributado: decimal('percentual_tributado', { precision: 10, scale: 4 }),
+    aliquota_do_icms_substituicao_tributaria:              real('aliquota_do_icms_substituicao_tributaria'),
+    base_de_calculo_do_icms_substituicao_tributaria:       real('base_de_calculo_do_icms_substituicao_tributaria'),
+    valor_do_icms_substituicao_tributaria:                 real('valor_do_icms_substituicao_tributaria'),
+    percentual_de_reducao_do_icms_substituicao_tributaria: real('percentual_de_reducao_do_icms_substituicao_tributaria'),
+    percentual_de_margem_de_valor_agregado:                real('percentual_de_margem_de_valor_agregado'),
 
     // FECOP
-    aliquota_do_fecop: decimal('aliquota_do_fecop', { precision: 10, scale: 4 }),
-    aliquota_do_fecop_substituto: decimal('aliquota_do_fecop_substituto', { precision: 10, scale: 4 }),
-    base_de_calculo_do_fecop: decimal('base_de_calculo_do_fecop', { precision: 15, scale: 4 }),
-    base_de_calculo_do_fecop_substituto: decimal('base_de_calculo_do_fecop_substituto', { precision: 15, scale: 4 }),
-    valor_do_fecop: decimal('valor_do_fecop', { precision: 15, scale: 4 }),
-    valor_do_fecop_substituto: decimal('valor_do_fecop_substituto', { precision: 15, scale: 4 }),
+    aliquota_fecop:                         real('aliquota_fecop'),
+    base_de_calculo_fecop:                  real('base_de_calculo_fecop'),
+    valor_fecop:                            real('valor_fecop'),
+    base_de_calculo_fecop_st:               real('base_de_calculo_fecop_st'),
+    valor_fecop_st:                         real('valor_fecop_st'),
 
     // IPI
-    cst_do_ipi: bigint('cst_do_ipi', { mode: 'number' }),
-    tipo_de_entrada_ipi: varchar('tipo_de_entrada_ipi', { length: 10 }),
-    aliquota_do_ipi: decimal('aliquota_do_ipi', { precision: 10, scale: 4 }),
-    percentual_do_ipi: decimal('percentual_do_ipi', { precision: 10, scale: 4 }),
-    base_de_calculo_do_ipi: decimal('base_de_calculo_do_ipi', { precision: 15, scale: 4 }),
-    valor_do_ipi: decimal('valor_do_ipi', { precision: 15, scale: 4 }),
+    cst_do_ipi_id:       integer('cst_do_ipi_id'),
+    aliquota_do_ipi:     real('aliquota_do_ipi'),
+    base_de_calculo_ipi: real('base_de_calculo_ipi'),
+    valor_do_ipi:        real('valor_do_ipi'),
 
     // PIS
-    cst_do_pis_id: bigint('cst_do_pis_id', { mode: 'number' }),
-    aliquota_do_pis: decimal('aliquota_do_pis', { precision: 10, scale: 4 }),
-    base_de_calculo_do_pis: decimal('base_de_calculo_do_pis', { precision: 15, scale: 4 }),
-    valor_do_pis: decimal('valor_do_pis', { precision: 15, scale: 4 }),
+    cst_do_pis_id:         integer('cst_do_pis_id'),
+    aliquota_do_pis:       real('aliquota_do_pis'),
+    base_de_calculo_do_pis: real('base_de_calculo_do_pis'),
+    valor_do_pis:          real('valor_do_pis'),
 
     // COFINS
-    cst_do_cofins_id: bigint('cst_do_cofins_id', { mode: 'number' }),
-    aliquota_do_cofins: decimal('aliquota_do_cofins', { precision: 10, scale: 4 }),
-    base_de_calculo_do_cofins: decimal('base_de_calculo_do_cofins', { precision: 15, scale: 4 }),
-    valor_do_cofins: decimal('valor_do_cofins', { precision: 15, scale: 4 }),
+    cst_do_cofins_id:          integer('cst_do_cofins_id'),
+    aliquota_do_cofins:        real('aliquota_do_cofins'),
+    base_de_calculo_do_cofins: real('base_de_calculo_do_cofins'),
+    valor_do_cofins:           real('valor_do_cofins'),
 
     // DAE
-    percentual_do_dae: decimal('percentual_do_dae', { precision: 10, scale: 4 }),
-    tipo_de_entrada_dae: varchar('tipo_de_entrada_dae', { length: 10 }),
-    valor_do_dae: decimal('valor_do_dae', { precision: 15, scale: 4 }),
+    percentual_do_dae:     real('percentual_do_dae'),
+    tipo_de_entrada_dae:   text('tipo_de_entrada_dae'),
+    valor_do_dae:          real('valor_do_dae'),
 
     // Custo
-    custo_fiscal: decimal('custo_fiscal', { precision: 15, scale: 4 }),
-    custo_medio: decimal('custo_medio', { precision: 15, scale: 4 }),
-    custo_reposicao: decimal('custo_reposicao', { precision: 15, scale: 4 }),
-    percentual_icms_de_compra: decimal('percentual_icms_de_compra', { precision: 10, scale: 4 }),
-
-    // Modalidade da base de cálculo do ICMS ST
-    modalidade_da_base_de_calculo: varchar('modalidade_da_base_de_calculo', { length: 30 }),
-
-    // Situação fiscal
-    situacao_fiscal_id: bigint('situacao_fiscal_id', { mode: 'number' }),
-    codigo_natureza_de_imposto_federal: bigint('codigo_natureza_de_imposto_federal', { mode: 'number' }),
+    custo_fiscal:               real('custo_fiscal'),
+    custo_medio:                real('custo_medio'),
+    custo_reposicao:            real('custo_reposicao'),
+    percentual_icms_de_compra:  real('percentual_icms_de_compra'),
 
     // Extras
-    compoe_total_da_nota: boolean('compoe_total_da_nota'),
-    data_validade: date('data_validade'),
+    modalidade_da_base_de_calculo:              text('modalidade_da_base_de_calculo'),
+    situacao_fiscal_id:                         integer('situacao_fiscal_id'),
+    codigo_natureza_de_imposto_federal:         integer('codigo_natureza_de_imposto_federal'),
+    compoe_total_da_nota:                       integer('compoe_total_da_nota', { mode: 'boolean' }),
+    data_validade:                              integer('data_validade', { mode: 'timestamp' }),
 
-    created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updated_at: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
+    created_at: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+
+    updated_at: integer('updated_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
   },
   (table) => ({
     notaVendaIdx: index('idx_nvi_nota_venda_external_id').on(table.nota_venda_external_id),
-    produtoIdx: index('idx_nvi_produto_id').on(table.produto_id),
+    produtoIdx:   index('idx_nvi_produto_id').on(table.produto_id),
   }),
 );
 
-export type NotaVendaItem = typeof notaVendaItem.$inferSelect;
+export type NotaVendaItem    = typeof notaVendaItem.$inferSelect;
 export type NewNotaVendaItem = typeof notaVendaItem.$inferInsert;

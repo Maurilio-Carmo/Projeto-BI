@@ -1,447 +1,303 @@
 // backend/src/database/schema/cupom.ts
+// ── MIGRAÇÃO MySQL → SQLite ──────────────────────────────────────────────────
+// Conversões (mesmas regras dos outros schemas):
+//   mysqlTable/mysqlEnum → sqliteTable / text({ enum: [...] })
+//   int/bigint           → integer
+//   varchar              → text
+//   decimal              → real
+//   date / timestamp     → integer({ mode: 'timestamp' })
+//   boolean              → integer({ mode: 'boolean' })
+//   ON UPDATE removido   → services já passam updated_at: new Date()
+//   sql`CURRENT_TIMESTAMP` → sql`(unixepoch())`
+// ─────────────────────────────────────────────────────────────────────────────
 import {
-  mysqlTable,
-  int,
-  bigint,
-  varchar,
-  decimal,
-  date,
-  boolean,
-  timestamp,
-  mysqlEnum,
-  index,
+  sqliteTable,
+  integer,
+  real,
   text,
-} from 'drizzle-orm/mysql-core';
+  index,
+} from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-/**
- * Tabela de Cupons Fiscais (NFC-e / ECF)
- * Campos mapeados diretamente da API: GET /v1/venda/cupons-fiscais
- * Objeto: CupomFiscal
- */
-export const cupom = mysqlTable(
+// ─── Cupom Fiscal ────────────────────────────────────────────────────────────
+
+export const cupom = sqliteTable(
   'cupom',
   {
-    id: int('id').autoincrement().primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // `identificadorId` — identificador sequencial único do cupom fiscal na API
-    external_id: bigint('external_id', { mode: 'number' }).notNull().unique(),
+    /** `identificadorId` — identificador sequencial único do cupom fiscal na API */
+    external_id: integer('external_id').notNull().unique(),
 
-    // Identificação do cupom
-    /** `id` — Identificador único (string UUID ou interno) */
-    id_externo: varchar('id_externo', { length: 36 }),
-    /** `coo` — Código sequencial que identifica o cupom impresso pela ECF */
-    coo: int('coo'),
-    /** `sequencial` — Sequencial da venda */
-    sequencial: varchar('sequencial', { length: 20 }),
-    /** `numeroCaixa` — Número do caixa */
-    numero_caixa: varchar('numero_caixa', { length: 3 }),
-    /** `numeroEquipamento` — Número do equipamento */
-    numero_equipamento: varchar('numero_equipamento', { length: 50 }),
-    /** `serieEquipamento` — Série do equipamento */
-    serie_equipamento: varchar('serie_equipamento', { length: 50 }),
-    /** `sequencialOperador` — Sequencial do operador */
-    sequencial_operador: varchar('sequencial_operador', { length: 20 }),
-    /** `codigoImpressora` — Código da impressora */
-    codigo_impressora: varchar('codigo_impressora', { length: 20 }),
-    /** `contadorDocumento` — Contador do documento */
-    contador_documento: varchar('contador_documento', { length: 20 }),
-    /** `chaveEletronica` — Chave eletrônica */
-    chave_eletronica: varchar('chave_eletronica', { length: 50 }).unique(),
-    /** `numeroDoProtocolo` — Número do protocolo de autorização */
-    numero_do_protocolo: varchar('numero_do_protocolo', { length: 50 }),
-    /** `statusXMLNota` — Status do XML da nota */
-    status_xml_nota: mysqlEnum('status_xml_nota', [
-      'PENDENTE', 'AUTORIZADA', 'PENDENTE_CANCELAMENTO', 'CANCELADA', 'ERRO', 'REJEITADA',
-    ]),
+    // Identificação
+    id_externo:          text('id_externo'),
+    coo:                 integer('coo'),
+    sequencial:          text('sequencial'),
+    numero_caixa:        text('numero_caixa'),
+    numero_equipamento:  text('numero_equipamento'),
+    serie_equipamento:   text('serie_equipamento'),
+    sequencial_operador: text('sequencial_operador'),
+    codigo_impressora:   text('codigo_impressora'),
+    contador_documento:  text('contador_documento'),
+    chave_eletronica:    text('chave_eletronica').unique(),
+    numero_do_protocolo: text('numero_do_protocolo'),
+
+    status_xml_nota: text('status_xml_nota', {
+      enum: ['PENDENTE', 'AUTORIZADA', 'PENDENTE_CANCELAMENTO', 'CANCELADA', 'ERRO', 'REJEITADA'],
+    }),
 
     // Datas e horas
-    /** `data` — Data da venda */
-    data: date('data').notNull(),
-    /** `dataVenda` — Data da venda (campo extra) */
-    data_venda: date('data_venda'),
-    /** `hora` — Hora da venda */
-    hora: varchar('hora', { length: 8 }),
-    /** `dataHoraAberturaCupom` */
-    data_hora_abertura_cupom: varchar('data_hora_abertura_cupom', { length: 30 }),
-    /** `dataHoraFechamentoCupom` */
-    data_hora_fechamento_cupom: varchar('data_hora_fechamento_cupom', { length: 30 }),
-    /** `criadoEm` — Data de criação */
-    criado_em: date('criado_em'),
+    data:                       integer('data',                       { mode: 'timestamp' }).notNull(),
+    data_venda:                 integer('data_venda',                 { mode: 'timestamp' }),
+    hora:                       text('hora'),
+    data_hora_abertura_cupom:   text('data_hora_abertura_cupom'),
+    data_hora_fechamento_cupom: text('data_hora_fechamento_cupom'),
+    criado_em:                  integer('criado_em',                  { mode: 'timestamp' }),
 
     // Consumidor
-    /** `nomeConsumidor` */
-    nome_consumidor: varchar('nome_consumidor', { length: 200 }),
-    /** `cpfConsumidor` */
-    cpf_consumidor: varchar('cpf_consumidor', { length: 14 }),
+    nome_consumidor: text('nome_consumidor'),
+    cpf_consumidor:  text('cpf_consumidor'),
 
     // Valores financeiros
-    /** `valor` — Valor da venda */
-    valor: decimal('valor', { precision: 15, scale: 4 }).notNull(),
-    /** `acrescimo` */
-    acrescimo: decimal('acrescimo', { precision: 15, scale: 4 }),
-    /** `desconto` */
-    desconto: decimal('desconto', { precision: 15, scale: 4 }),
-    /** `valorDescontoFidelidade` */
-    valor_desconto_fidelidade: decimal('valor_desconto_fidelidade', { precision: 15, scale: 4 }),
-    /** `valorServico` */
-    valor_servico: decimal('valor_servico', { precision: 15, scale: 4 }),
-    /** `valorItensCancelados` */
-    valor_itens_cancelados: decimal('valor_itens_cancelados', { precision: 15, scale: 4 }),
-    /** `margemDesconto` */
-    margem_desconto: decimal('margem_desconto', { precision: 10, scale: 4 }),
+    valor:                      real('valor').notNull(),
+    acrescimo:                  real('acrescimo'),
+    desconto:                   real('desconto'),
+    valor_desconto_fidelidade:  real('valor_desconto_fidelidade'),
+    valor_servico:              real('valor_servico'),
+    valor_itens_cancelados:     real('valor_itens_cancelados'),
+    margem_desconto:            real('margem_desconto'),
 
     // Quantidades
-    /** `qtdItensCupom` */
-    qtd_itens_cupom: decimal('qtd_itens_cupom', { precision: 10, scale: 4 }),
-    /** `qtdItensCancelados` */
-    qtd_itens_cancelados: decimal('qtd_itens_cancelados', { precision: 10, scale: 4 }),
-    /** `qtdUnidadesCupom` */
-    qtd_unidades_cupom: decimal('qtd_unidades_cupom', { precision: 10, scale: 4 }),
-    /** `qtdUnidadesCanceladas` */
-    qtd_unidades_canceladas: decimal('qtd_unidades_canceladas', { precision: 10, scale: 4 }),
+    qtd_itens_cupom:       real('qtd_itens_cupom'),
+    qtd_itens_cancelados:  real('qtd_itens_cancelados'),
+    qtd_unidades_cupom:    real('qtd_unidades_cupom'),
+    qtd_unidades_canceladas: real('qtd_unidades_canceladas'),
 
     // Status / flags
-    /** `cancelada` */
-    cancelada: boolean('cancelada'),
-    /** `imprimiuNotaFiscal` */
-    imprimiu_nota_fiscal: boolean('imprimiu_nota_fiscal'),
-    /** `temItensVendidoEmOferta` */
-    tem_itens_vendido_em_oferta: boolean('tem_itens_vendido_em_oferta'),
-    /** `abonoServico` */
-    abono_servico: boolean('abono_servico'),
+    cancelada:               integer('cancelada',               { mode: 'boolean' }),
+    imprimiu_nota_fiscal:    integer('imprimiu_nota_fiscal',    { mode: 'boolean' }),
+    tem_itens_vendido_em_oferta: integer('tem_itens_vendido_em_oferta', { mode: 'boolean' }),
+    abono_servico:           integer('abono_servico',           { mode: 'boolean' }),
 
     // Cancelamento
-    /** `justificativaCancelamento` */
-    justificativa_cancelamento: text('justificativa_cancelamento'),
-    /** `sequencialCupomCancelado` */
-    sequencial_cupom_cancelado: varchar('sequencial_cupom_cancelado', { length: 20 }),
-    /** `codigoMotivoCancelamentoId` */
-    codigo_motivo_cancelamento_id: bigint('codigo_motivo_cancelamento_id', { mode: 'number' }),
+    justificativa_cancelamento:    text('justificativa_cancelamento'),
+    sequencial_cupom_cancelado:    text('sequencial_cupom_cancelado'),
+    codigo_motivo_cancelamento_id: integer('codigo_motivo_cancelamento_id'),
 
     // Desconto
-    /** `justificativaDesconto` */
-    justificativa_desconto: text('justificativa_desconto'),
-    /** `codigoMotivoDescontoId` */
-    codigo_motivo_desconto_id: bigint('codigo_motivo_desconto_id', { mode: 'number' }),
-    /** `codigoMotivoDescontoFidelidadeId` */
-    codigo_motivo_desconto_fidelidade_id: bigint('codigo_motivo_desconto_fidelidade_id', { mode: 'number' }),
+    justificativa_desconto:               text('justificativa_desconto'),
+    codigo_motivo_desconto_id:            integer('codigo_motivo_desconto_id'),
+    codigo_motivo_desconto_fidelidade_id: integer('codigo_motivo_desconto_fidelidade_id'),
 
     // Intermediador
-    /** `tipoIntermediador` */
-    tipo_intermediador: varchar('tipo_intermediador', { length: 20 }),
-    /** `cnpjDoIntermediador` */
-    cnpj_do_intermediador: varchar('cnpj_do_intermediador', { length: 20 }),
-    /** `nomeDoIntermediador` */
-    nome_do_intermediador: varchar('nome_do_intermediador', { length: 200 }),
-    /** `indicadorDePresenca` */
-    indicador_de_presenca: varchar('indicador_de_presenca', { length: 10 }),
+    tipo_intermediador:    text('tipo_intermediador'),
+    cnpj_do_intermediador: text('cnpj_do_intermediador'),
+    nome_do_intermediador: text('nome_do_intermediador'),
+    indicador_de_presenca: text('indicador_de_presenca'),
 
     // Fidelidade
-    /** `cartaoFidelidade` */
-    cartao_fidelidade: varchar('cartao_fidelidade', { length: 50 }),
+    cartao_fidelidade: text('cartao_fidelidade'),
 
     // Relacionamentos
-    /** `lojaId` */
-    loja_id: bigint('loja_id', { mode: 'number' }),
-    /** `clienteId` */
-    cliente_id: bigint('cliente_id', { mode: 'number' }),
-    /** `funcionarioId` */
-    funcionario_id: int('funcionario_id'),
-    /** `autorizadorId` */
-    autorizador_id: int('autorizador_id'),
-    /** `notaFiscalId` — se gerou NF-e */
-    nota_fiscal_id: bigint('nota_fiscal_id', { mode: 'number' }),
-    /** `pedidoVendaId` */
-    pedido_venda_id: bigint('pedido_venda_id', { mode: 'number' }),
+    loja_id:          integer('loja_id'),
+    cliente_id:       integer('cliente_id'),
+    funcionario_id:   integer('funcionario_id'),
+    autorizador_id:   integer('autorizador_id'),
+    nota_fiscal_id:   integer('nota_fiscal_id'),
+    pedido_venda_id:  integer('pedido_venda_id'),
 
     // Preço
-    /** `tipoPreco` */
-    tipo_preco: varchar('tipo_preco', { length: 20 }),
-    /** `transacaoVendaEnvelope` */
+    tipo_preco:              text('tipo_preco'),
     transacao_venda_envelope: text('transacao_venda_envelope'),
 
-    created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updated_at: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
+    created_at: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+
+    updated_at: integer('updated_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
   },
   (table) => ({
     externalIdIdx: index('idx_cupom_external_id').on(table.external_id),
-    dataIdx: index('idx_cupom_data').on(table.data),
-    lojaIdx: index('idx_cupom_loja_id').on(table.loja_id),
-    chaveIdx: index('idx_cupom_chave').on(table.chave_eletronica),
-    canceladaIdx: index('idx_cupom_cancelada').on(table.cancelada),
+    dataIdx:       index('idx_cupom_data').on(table.data),
+    lojaIdx:       index('idx_cupom_loja_id').on(table.loja_id),
+    chaveIdx:      index('idx_cupom_chave').on(table.chave_eletronica),
+    canceladaIdx:  index('idx_cupom_cancelada').on(table.cancelada),
   }),
 );
 
-export type Cupom = typeof cupom.$inferSelect;
+export type Cupom    = typeof cupom.$inferSelect;
 export type NewCupom = typeof cupom.$inferInsert;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Itens do Cupom Fiscal ───────────────────────────────────────────────────
 
-/**
- * Tabela de Itens dos Cupons Fiscais
- * Campos mapeados de ItemVenda na API: /v1/venda/cupons-fiscais → itensVenda
- */
-export const cupomItem = mysqlTable(
+export const cupomItem = sqliteTable(
   'cupom_item',
   {
-    id: int('id').autoincrement().primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
 
-    /** FK para cupom (external_id do cupom) */
-    cupom_external_id: bigint('cupom_external_id', { mode: 'number' }).notNull(),
-
-    /** `id` — Identificador do item de venda */
-    external_item_id: int('external_item_id'),
+    cupom_external_id: integer('cupom_external_id').notNull(),
+    external_item_id:  integer('external_item_id'),
 
     // Produto
-    /** `produtoId` */
-    produto_id: bigint('produto_id', { mode: 'number' }),
-    /** `ncm` */
-    ncm: varchar('ncm', { length: 8 }),
-    /** `csosn` */
-    csosn: varchar('csosn', { length: 10 }),
-    /** `cfop` */
-    cfop: varchar('cfop', { length: 10 }),
-    /** `codigoAuxiliarId` */
-    codigo_auxiliar_id: varchar('codigo_auxiliar_id', { length: 50 }),
-    /** `serieProduto` */
-    serie_produto: varchar('serie_produto', { length: 20 }),
-    /** `natureza` — Natureza dos itens da venda */
-    natureza: varchar('natureza', { length: 10 }),
+    produto_id:        integer('produto_id'),
+    ncm:               text('ncm'),
+    csosn:             text('csosn'),
+    cfop:              text('cfop'),
+    codigo_auxiliar_id: text('codigo_auxiliar_id'),
+    serie_produto:     text('serie_produto'),
+    natureza:          text('natureza'),
 
-    // Tipo e status do item
-    /** `tipo` — 1=Item Vendido, 2=Item Cancelado */
-    tipo: varchar('tipo', { length: 5 }),
-    /** `tabelaA` — Tipo do item da venda */
-    tabela_a: varchar('tabela_a', { length: 10 }),
-    /** `tabelaB` — Percentual de desconto */
-    tabela_b: varchar('tabela_b', { length: 10 }),
-    /** `tipoPreco` */
-    tipo_preco: varchar('tipo_preco', { length: 20 }),
+    // Tipo e status
+    tipo:       text('tipo'),
+    tabela_a:   text('tabela_a'),
+    tabela_b:   text('tabela_b'),
+    tipo_preco: text('tipo_preco'),
 
     // Quantidades e valores
-    /** `quantidadeVenda` */
-    quantidade_venda: decimal('quantidade_venda', { precision: 15, scale: 4 }),
-    /** `valorUnidade` — Valor unitário */
-    valor_unidade: decimal('valor_unidade', { precision: 15, scale: 4 }),
-    /** `precoVenda` */
-    preco_venda: decimal('preco_venda', { precision: 15, scale: 4 }),
-    /** `precoCusto` */
-    preco_custo: decimal('preco_custo', { precision: 15, scale: 4 }),
-    /** `precoCustoFiscal` */
-    preco_custo_fiscal: decimal('preco_custo_fiscal', { precision: 15, scale: 4 }),
-    /** `precoCustoMedio` */
-    preco_custo_medio: decimal('preco_custo_medio', { precision: 15, scale: 4 }),
-    /** `valorTotal` — Valor total da venda do item */
-    valor_total: decimal('valor_total', { precision: 15, scale: 4 }),
-    /** `valorServico` */
-    valor_servico: decimal('valor_servico', { precision: 15, scale: 4 }),
+    quantidade_venda:   real('quantidade_venda'),
+    valor_unidade:      real('valor_unidade'),
+    preco_venda:        real('preco_venda'),
+    preco_custo:        real('preco_custo'),
+    preco_custo_fiscal: real('preco_custo_fiscal'),
+    preco_custo_medio:  real('preco_custo_medio'),
+    valor_total:        real('valor_total'),
+    valor_servico:      real('valor_servico'),
 
-    // Desconto
-    /** `valorDesconto` */
-    valor_desconto: decimal('valor_desconto', { precision: 15, scale: 4 }),
-    /** `tipoDeDescontoAplicado` */
-    tipo_de_desconto_aplicado: varchar('tipo_de_desconto_aplicado', { length: 20 }),
-    /** `valorDoDescontoMegaCaixa` */
-    valor_do_desconto_mega_caixa: decimal('valor_do_desconto_mega_caixa', { precision: 15, scale: 4 }),
-
-    // Acréscimo
-    /** `valorAcrescimo` */
-    valor_acrescimo: decimal('valor_acrescimo', { precision: 15, scale: 4 }),
-
-    // Taxa e entrega
-    /** `taxaEntrega` */
-    taxa_entrega: boolean('taxa_entrega'),
+    // Desconto / acréscimo
+    valor_desconto:               real('valor_desconto'),
+    tipo_de_desconto_aplicado:    text('tipo_de_desconto_aplicado'),
+    valor_do_desconto_mega_caixa: real('valor_do_desconto_mega_caixa'),
+    valor_acrescimo:              real('valor_acrescimo'),
+    taxa_entrega:                 integer('taxa_entrega', { mode: 'boolean' }),
 
     // ICMS
-    /** `tributacao` */
-    tributacao: varchar('tributacao', { length: 10 }),
-    /** `tributacaoAliquota` */
-    tributacao_aliquota: decimal('tributacao_aliquota', { precision: 10, scale: 4 }),
-    /** `tributacaoValorReducao` */
-    tributacao_valor_reducao: decimal('tributacao_valor_reducao', { precision: 15, scale: 4 }),
-    /** `tributacaoAliquotaFecop` */
-    tributacao_aliquota_fecop: decimal('tributacao_aliquota_fecop', { precision: 10, scale: 4 }),
-    /** `tributacaoSimbologia` */
-    tributacao_simbologia: varchar('tributacao_simbologia', { length: 10 }),
-    /** `valorFecop` */
-    valor_fecop: decimal('valor_fecop', { precision: 15, scale: 4 }),
+    tributacao:                  text('tributacao'),
+    tributacao_aliquota:         real('tributacao_aliquota'),
+    tributacao_valor_reducao:    real('tributacao_valor_reducao'),
+    tributacao_aliquota_fecop:   real('tributacao_aliquota_fecop'),
+    tributacao_simbologia:       text('tributacao_simbologia'),
+    valor_fecop:                 real('valor_fecop'),
 
     // PIS / COFINS
-    /** `aliquotaPIS` */
-    aliquota_pis: decimal('aliquota_pis', { precision: 10, scale: 4 }),
-    /** `cstPIS` */
-    cst_pis: varchar('cst_pis', { length: 5 }),
-    /** `aliquotaCOFINS` */
-    aliquota_cofins: decimal('aliquota_cofins', { precision: 10, scale: 4 }),
-    /** `cstCOFINS` */
-    cst_cofins: varchar('cst_cofins', { length: 5 }),
+    aliquota_pis:   real('aliquota_pis'),
+    cst_pis:        text('cst_pis'),
+    aliquota_cofins: real('aliquota_cofins'),
+    cst_cofins:     text('cst_cofins'),
 
     // Bonificação
-    /** `tipoBonificacao` */
-    tipo_bonificacao: varchar('tipo_bonificacao', { length: 20 }),
-    /** `fatorBonificacao` */
-    fator_bonificacao: decimal('fator_bonificacao', { precision: 10, scale: 4 }),
+    tipo_bonificacao:  text('tipo_bonificacao'),
+    fator_bonificacao: real('fator_bonificacao'),
 
     // Relacionamentos
-    /** `localVendaId` */
-    local_venda_id: bigint('local_venda_id', { mode: 'number' }),
-    /** `funcionarioVendedorId` */
-    funcionario_vendedor_id: int('funcionario_vendedor_id'),
-    /** `funcionarioAutorizadorId` */
-    funcionario_autorizador_id: int('funcionario_autorizador_id'),
-    /** `funcionarioCaptacaoPrevendaId` */
-    funcionario_captacao_prevenda_id: varchar('funcionario_captacao_prevenda_id', { length: 50 }),
-    /** `funcionarioProducaoId` */
-    funcionario_producao_id: varchar('funcionario_producao_id', { length: 50 }),
-    /** `setorDeProducaoId` */
-    setor_de_producao_id: int('setor_de_producao_id'),
+    local_venda_id:                   integer('local_venda_id'),
+    funcionario_vendedor_id:          integer('funcionario_vendedor_id'),
+    funcionario_autorizador_id:       integer('funcionario_autorizador_id'),
+    funcionario_captacao_prevenda_id: text('funcionario_captacao_prevenda_id'),
+    funcionario_producao_id:          text('funcionario_producao_id'),
+    setor_de_producao_id:             integer('setor_de_producao_id'),
 
     // Flags
-    /** `participouPromocaoDesconto` */
-    participou_promocao_desconto: boolean('participou_promocao_desconto'),
-    /** `foiVendidoEmOferta` */
-    foi_vendido_em_oferta: boolean('foi_vendido_em_oferta'),
+    participou_promocao_desconto: integer('participou_promocao_desconto', { mode: 'boolean' }),
+    foi_vendido_em_oferta:        integer('foi_vendido_em_oferta',        { mode: 'boolean' }),
 
-    created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updated_at: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
+    created_at: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+
+    updated_at: integer('updated_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
   },
   (table) => ({
     cupomExternalIdx: index('idx_ci_cupom_external_id').on(table.cupom_external_id),
-    produtoIdx: index('idx_ci_produto_id').on(table.produto_id),
+    produtoIdx:       index('idx_ci_produto_id').on(table.produto_id),
   }),
 );
 
-export type CupomItem = typeof cupomItem.$inferSelect;
+export type CupomItem    = typeof cupomItem.$inferSelect;
 export type NewCupomItem = typeof cupomItem.$inferInsert;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Finalizações do Cupom Fiscal ────────────────────────────────────────────
 
-/**
- * Tabela de Finalizações dos Cupons Fiscais
- * Campos mapeados de Finalizacao na API: /v1/venda/cupons-fiscais → finalizacoes
- * Representa as formas de pagamento utilizadas no cupom.
- */
-export const cupomFinalizacao = mysqlTable(
+export const cupomFinalizacao = sqliteTable(
   'cupom_finalizacao',
   {
-    id: int('id').autoincrement().primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
 
-    /** FK para cupom (external_id do cupom) */
-    cupom_external_id: bigint('cupom_external_id', { mode: 'number' }).notNull(),
-
-    /** `id` — Identificador único da finalização */
-    external_finalizacao_id: int('external_finalizacao_id'),
-
-    /** `finalizadoraId` — Identificador único da finalizadora */
-    finalizadora_id: int('finalizadora_id'),
-
-    /** `sequencial` — Sequencial da finalização (max 3 chars) */
-    sequencial: varchar('sequencial', { length: 3 }),
-
-    /** `tipo` — Tipo de finalização (ex: DINHEIRO, CARTAO, CHEQUE…) */
-    tipo: varchar('tipo', { length: 30 }),
-
-    /** `especializacao` — Especialização da finalização */
-    especializacao: varchar('especializacao', { length: 50 }),
-
-    /** `modalidade` — Modalidade da finalização */
-    modalidade: varchar('modalidade', { length: 50 }),
-
-    /** `valor` — Valor da finalização */
-    valor: decimal('valor', { precision: 15, scale: 4 }).notNull(),
+    cupom_external_id:       integer('cupom_external_id').notNull(),
+    external_finalizacao_id: integer('external_finalizacao_id'),
+    finalizadora_id:         integer('finalizadora_id'),
+    sequencial:              text('sequencial'),
+    tipo:                    text('tipo'),
+    especializacao:          text('especializacao'),
+    modalidade:              text('modalidade'),
+    valor:                   real('valor').notNull(),
 
     // Troco
-    /** `troco` */
-    troco: decimal('troco', { precision: 15, scale: 4 }),
-    /** `tipoTroco` — T ou C */
-    tipo_troco: varchar('tipo_troco', { length: 1 }),
-    /** `trocoDoacao` */
-    troco_doacao: decimal('troco_doacao', { precision: 15, scale: 4 }),
+    troco:      real('troco'),
+    tipo_troco: text('tipo_troco'),
+    troco_doacao: real('troco_doacao'),
 
     // Cartão
-    /** `bandeira` */
-    bandeira: varchar('bandeira', { length: 50 }),
-    /** `numeroCartao` */
-    numero_cartao: varchar('numero_cartao', { length: 30 }),
-    /** `numeroBinCartao` */
-    numero_bin_cartao: varchar('numero_bin_cartao', { length: 10 }),
-    /** `nsu` */
-    nsu: varchar('nsu', { length: 30 }),
-    /** `nsuAutorizacao` */
-    nsu_autorizacao: varchar('nsu_autorizacao', { length: 30 }),
-    /** `nsuDoCancelamento` */
-    nsu_do_cancelamento: varchar('nsu_do_cancelamento', { length: 30 }),
-    /** `autorizacaoCartao` */
-    autorizacao_cartao: varchar('autorizacao_cartao', { length: 30 }),
-    /** `redeAdquirente` */
-    rede_adquirente: varchar('rede_adquirente', { length: 50 }),
-
-    // TEF / POS
-    /** `localTef` — POS, TEF, DISCADA */
-    local_tef: varchar('local_tef', { length: 10 }),
+    bandeira:           text('bandeira'),
+    numero_cartao:      text('numero_cartao'),
+    numero_bin_cartao:  text('numero_bin_cartao'),
+    nsu:                text('nsu'),
+    nsu_autorizacao:    text('nsu_autorizacao'),
+    nsu_do_cancelamento: text('nsu_do_cancelamento'),
+    autorizacao_cartao: text('autorizacao_cartao'),
+    rede_adquirente:    text('rede_adquirente'),
+    local_tef:          text('local_tef'),
 
     // Parcelamento
-    /** `quantidadeParcelas` */
-    quantidade_parcelas: varchar('quantidade_parcelas', { length: 5 }),
-    /** `codigoPlano` */
-    codigo_plano: varchar('codigo_plano', { length: 20 }),
-    /** `planoReducao` */
-    plano_reducao: varchar('plano_reducao', { length: 20 }),
-    /** `jurosPlano` */
-    juros_plano: decimal('juros_plano', { precision: 10, scale: 4 }),
-    /** `solicitaPlano` — S ou N */
-    solicita_plano: varchar('solicita_plano', { length: 1 }),
+    quantidade_parcelas: text('quantidade_parcelas'),
+    codigo_plano:        text('codigo_plano'),
+    plano_reducao:       text('plano_reducao'),
+    juros_plano:         real('juros_plano'),
+    solicita_plano:      text('solicita_plano'),
 
     // Cheque
-    /** `emitenteCheque` */
-    emitente_cheque: varchar('emitente_cheque', { length: 100 }),
-    /** `leituraCmc7` */
-    leitura_cmc7: varchar('leitura_cmc7', { length: 50 }),
-    /** `dataVencimento` */
-    data_vencimento: date('data_vencimento'),
+    emitente_cheque: text('emitente_cheque'),
+    leitura_cmc7:    text('leitura_cmc7'),
+    data_vencimento: integer('data_vencimento', { mode: 'timestamp' }),
 
-    // Vale compra / crédito
-    /** `numeroValeCompra` */
-    numero_vale_compra: varchar('numero_vale_compra', { length: 50 }),
-    /** `descontoMoeda` */
-    desconto_moeda: decimal('desconto_moeda', { precision: 15, scale: 4 }),
+    // Vale compra / desconto
+    numero_vale_compra: text('numero_vale_compra'),
+    desconto_moeda:     real('desconto_moeda'),
 
-    // Outros
-    /** `codigoOrigem` */
-    codigo_origem: varchar('codigo_origem', { length: 20 }),
-    /** `codigoAgente` */
-    codigo_agente: varchar('codigo_agente', { length: 20 }),
-    /** `sangriaDetalhada` */
-    sangria_detalhada: varchar('sangria_detalhada', { length: 50 }),
-
-    // Flags de crédito
-    /** `verificaLimiteCredito` */
-    verifica_limite_credito: varchar('verifica_limite_credito', { length: 1 }),
-    /** `atualizaLimiteCredito` */
-    atualiza_limite_credito: varchar('atualiza_limite_credito', { length: 1 }),
+    // Controle
+    codigo_origem:           text('codigo_origem'),
+    codigo_agente:           text('codigo_agente'),
+    sangria_detalhada:       text('sangria_detalhada'),
+    verifica_limite_credito: text('verifica_limite_credito'),
+    atualiza_limite_credito: text('atualiza_limite_credito'),
 
     // Fidelidade / contas
-    /** `geraFidelidade` — S ou N */
-    gera_fidelidade: varchar('gera_fidelidade', { length: 1 }),
-    /** `geraContaReceber` — S ou N */
-    gera_conta_receber: varchar('gera_conta_receber', { length: 1 }),
+    gera_fidelidade:    text('gera_fidelidade'),
+    gera_conta_receber: text('gera_conta_receber'),
 
-    // Texto livre (impressão no cupom)
-    texto_livre1: varchar('texto_livre1', { length: 200 }),
-    texto_livre2: varchar('texto_livre2', { length: 200 }),
-    texto_livre3: varchar('texto_livre3', { length: 200 }),
-    texto_livre4: varchar('texto_livre4', { length: 200 }),
+    // Texto livre
+    texto_livre1: text('texto_livre1'),
+    texto_livre2: text('texto_livre2'),
+    texto_livre3: text('texto_livre3'),
+    texto_livre4: text('texto_livre4'),
 
-    created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updated_at: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
+    created_at: integer('created_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+
+    updated_at: integer('updated_at', { mode: 'timestamp' })
+      .default(sql`(unixepoch())`)
+      .notNull(),
   },
   (table) => ({
     cupomExternalIdx: index('idx_cf_cupom_external_id').on(table.cupom_external_id),
-    finalizadoraIdx: index('idx_cf_finalizadora_id').on(table.finalizadora_id),
-    tipoIdx: index('idx_cf_tipo').on(table.tipo),
+    finalizadoraIdx:  index('idx_cf_finalizadora_id').on(table.finalizadora_id),
+    tipoIdx:          index('idx_cf_tipo').on(table.tipo),
   }),
 );
 
-export type CupomFinalizacao = typeof cupomFinalizacao.$inferSelect;
+export type CupomFinalizacao    = typeof cupomFinalizacao.$inferSelect;
 export type NewCupomFinalizacao = typeof cupomFinalizacao.$inferInsert;

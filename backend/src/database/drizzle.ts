@@ -1,6 +1,16 @@
 // backend/src/database/drizzle.ts
-import { drizzle } from 'drizzle-orm/mysql2';
-import { createPool } from 'mysql2/promise';
+// ── Driver: @libsql/client (libSQL) ─────────────────────────────────────────
+// Motivo da troca: better-sqlite3 exige compilação nativa (Python + node-gyp).
+// @libsql/client distribui binários pré-compilados para Windows/Linux/macOS —
+// sem dependência de Python, node-gyp ou Visual Studio.
+//
+// API idêntica ao SQLite: lê/escreve o mesmo arquivo .db local.
+// String de conexão para arquivo local: "file:./database/fiscalsync.db"
+// ─────────────────────────────────────────────────────────────────────────────
+import { drizzle }      from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
+import * as path        from 'path';
+import * as fs          from 'fs';
 import * as credencialSchema from './schema/credencial';
 import * as notaVendaSchema  from './schema/nota-venda';
 import * as notaCompraSchema from './schema/nota-compra';
@@ -17,28 +27,35 @@ export const schema = {
   ...syncLogsSchema,
 };
 
-export type Database = ReturnType<typeof createDrizzleInstance>;
-export type DrizzleDB = Database;
+// ── Tipo explícito do drizzle-orm/libsql ─────────────────────────────────────
+// Não usar ReturnType<typeof createDrizzleInstance> — causaria referência circular.
+// LibSQLDatabase<schema> é o tipo interno correto para o driver libsql.
+import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 
-export function createDrizzleInstance(config: {
-  host: string;
-  port: number;
-  user: string;
-  password: string;
-  database: string;
-}) {
-  const pool = createPool({
-    host: config.host,
-    port: config.port,
-    user: config.user,
-    password: config.password,
-    database: config.database,
-    connectionLimit: 10,
-    waitForConnections: true,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
+/** Tipo da instância Drizzle — usado nos @Inject('DRIZZLE') dos services */
+export type DrizzleDB = LibSQLDatabase<typeof schema>;
+
+/**
+ * Alias de compatibilidade — modules legados importam `Database` de drizzle.ts.
+ * Aponta para o mesmo tipo DrizzleDB.
+ */
+export type Database = DrizzleDB;
+
+/**
+ * Cria e retorna a instância Drizzle conectada ao arquivo SQLite via libSQL.
+ *
+ * @param filepath - Caminho do arquivo .db
+ *                   Ex: './database/fiscalsync.db'
+ */
+export function createDrizzleInstance(filepath: string): DrizzleDB {
+  // Garante que o diretório existe antes de abrir o banco
+  const absolutePath = path.resolve(filepath);
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+
+  // libSQL usa prefixo "file:" para arquivos locais
+  const client = createClient({
+    url: `file:${absolutePath}`,
   });
 
-  return drizzle(pool, { schema, mode: 'default' });
+  return drizzle(client, { schema });
 }

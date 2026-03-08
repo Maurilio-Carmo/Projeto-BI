@@ -1,12 +1,16 @@
 // backend/src/modules/sync/mappers/cupom.mapper.ts
 //
-// Converte os objetos retornados pela API VarejoFácil (endpoint cupons-fiscais)
-// nos formatos esperados pelas tabelas `cupom`, `cupom_item` e `cupom_finalizacao`.
+// Converte objetos da API VarejoFácil para as tabelas cupom, cupom_item, cupom_finalizacao.
+//
+// ── CORREÇÃO SQLite ──────────────────────────────────────────────────────────
+// Helper d() retornava string | null (MySQL DECIMAL).
+// SQLite usa real (number) → renomeado para n(), retorna number | null.
+// ─────────────────────────────────────────────────────────────────────────────
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Helper: converte valor para string decimal ou null */
-const d = (v: unknown): string | null => (v != null ? String(v) : null);
+/** Converte valor para number ou null — compatível com colunas `real` do SQLite */
+const n = (v: unknown): number | null => (v != null ? Number(v) : null);
 
 // ─── Mapper do Cupom principal ───────────────────────────────────────────────
 
@@ -33,17 +37,18 @@ export function mapCupomToDb(item: any) {
     criado_em:                             item.criadoEm ? new Date(item.criadoEm) : null,
     nome_consumidor:                       item.nomeConsumidor ?? null,
     cpf_consumidor:                        item.cpfConsumidor ?? null,
-    valor:                                 d(item.valor) ?? '0',
-    acrescimo:                             d(item.acrescimo),
-    desconto:                              d(item.desconto),
-    valor_desconto_fidelidade:             d(item.valorDescontoFidelidade),
-    valor_servico:                         d(item.valorServico),
-    valor_itens_cancelados:                d(item.valorItensCancelados),
-    margem_desconto:                       d(item.margemDesconto),
-    qtd_itens_cupom:                       d(item.qtdItensCupom),
-    qtd_itens_cancelados:                  d(item.qtdItensCancelados),
-    qtd_unidades_cupom:                    d(item.qtdUnidadesCupom),
-    qtd_unidades_canceladas:               d(item.qtdUnidadesCanceladas),
+    // Valores financeiros — n() em vez de d()
+    valor:                                 Number(item.valor ?? 0),
+    acrescimo:                             n(item.acrescimo),
+    desconto:                              n(item.desconto),
+    valor_desconto_fidelidade:             n(item.valorDescontoFidelidade),
+    valor_servico:                         n(item.valorServico),
+    valor_itens_cancelados:                n(item.valorItensCancelados),
+    margem_desconto:                       n(item.margemDesconto),
+    qtd_itens_cupom:                       n(item.qtdItensCupom),
+    qtd_itens_cancelados:                  n(item.qtdItensCancelados),
+    qtd_unidades_cupom:                    n(item.qtdUnidadesCupom),
+    qtd_unidades_canceladas:               n(item.qtdUnidadesCanceladas),
     cancelada:                             item.cancelada ?? null,
     imprimiu_nota_fiscal:                  item.imprimiuNotaFiscal ?? null,
     tem_itens_vendido_em_oferta:           item.temItensVendidoEmOferta ?? null,
@@ -87,31 +92,32 @@ export function mapCupomItemToDb(item: any, cupomExternalId: number) {
     tabela_a:                              item.tabelaA ?? null,
     tabela_b:                              item.tabelaB ?? null,
     tipo_preco:                            item.tipoPreco ?? null,
-    quantidade_venda:                      d(item.quantidadeVenda),
-    valor_unidade:                         d(item.valorUnidade),
-    preco_venda:                           d(item.precoVenda),
-    preco_custo:                           d(item.precoCusto),
-    preco_custo_fiscal:                    d(item.precoCustoFiscal),
-    preco_custo_medio:                     d(item.precoCustoMedio),
-    valor_total:                           d(item.valorTotal),
-    valor_servico:                         d(item.valorServico),
-    valor_desconto:                        d(item.valorDesconto),
+    // Quantidades e valores — n() em vez de d()
+    quantidade_venda:                      n(item.quantidadeVenda),
+    valor_unidade:                         n(item.valorUnidade),
+    preco_venda:                           n(item.precoVenda),
+    preco_custo:                           n(item.precoCusto),
+    preco_custo_fiscal:                    n(item.precoCustoFiscal),
+    preco_custo_medio:                     n(item.precoCustoMedio),
+    valor_total:                           n(item.valorTotal),
+    valor_servico:                         n(item.valorServico),
+    valor_desconto:                        n(item.valorDesconto),
     tipo_de_desconto_aplicado:             item.tipoDeDescontoAplicado ?? null,
-    valor_do_desconto_mega_caixa:          d(item.valorDoDescontoMegaCaixa),
-    valor_acrescimo:                       d(item.valorAcrescimo),
+    valor_do_desconto_mega_caixa:          n(item.valorDoDescontoMegaCaixa),
+    valor_acrescimo:                       n(item.valorAcrescimo),
     taxa_entrega:                          item.taxaEntrega ?? null,
     tributacao:                            item.tributacao ?? null,
-    tributacao_aliquota:                   d(item.tributacaoAliquota),
-    tributacao_valor_reducao:              d(item.tributacaoValorReducao),
-    tributacao_aliquota_fecop:             d(item.tributacaoAliquotaFecop),
+    tributacao_aliquota:                   n(item.tributacaoAliquota),
+    tributacao_valor_reducao:              n(item.tributacaoValorReducao),
+    tributacao_aliquota_fecop:             n(item.tributacaoAliquotaFecop),
     tributacao_simbologia:                 item.tributacaoSimbologia ?? null,
-    valor_fecop:                           d(item.valorFecop),
-    aliquota_pis:                          d(item.aliquotaPIS),
+    valor_fecop:                           n(item.valorFecop),
+    aliquota_pis:                          n(item.aliquotaPIS),
     cst_pis:                               item.cstPIS ?? null,
-    aliquota_cofins:                       d(item.aliquotaCOFINS),
+    aliquota_cofins:                       n(item.aliquotaCOFINS),
     cst_cofins:                            item.cstCOFINS ?? null,
     tipo_bonificacao:                      item.tipoBonificacao ?? null,
-    fator_bonificacao:                     d(item.fatorBonificacao),
+    fator_bonificacao:                     n(item.fatorBonificacao),
     local_venda_id:                        item.localVendaId ? Number(item.localVendaId) : null,
     funcionario_vendedor_id:               item.funcionarioVendedorId ? Number(item.funcionarioVendedorId) : null,
     funcionario_autorizador_id:            item.funcionarioAutorizadorId ? Number(item.funcionarioAutorizadorId) : null,
@@ -134,10 +140,11 @@ export function mapFinalizacaoToDb(item: any, cupomExternalId: number) {
     tipo:                       item.tipo ?? null,
     especializacao:             item.especializacao ?? null,
     modalidade:                 item.modalidade ?? null,
-    valor:                      d(item.valor) ?? '0',
-    troco:                      d(item.troco),
+    // valor obrigatório — n() garante number
+    valor:                      Number(item.valor ?? 0),
+    troco:                      n(item.troco),
     tipo_troco:                 item.tipoTroco ?? null,
-    troco_doacao:               d(item.trocoDoacao),
+    troco_doacao:               n(item.trocoDoacao),
     bandeira:                   item.bandeira ?? null,
     numero_cartao:              item.numeroCartao ?? null,
     numero_bin_cartao:          item.numeroBinCartao ?? null,
@@ -150,11 +157,13 @@ export function mapFinalizacaoToDb(item: any, cupomExternalId: number) {
     quantidade_parcelas:        item.quantidadeParcelas ?? null,
     codigo_plano:               item.codigoPlano ?? null,
     plano_reducao:              item.planoReducao ?? null,
-    juros_plano:                d(item.jurosPlano),
+    juros_plano:                n(item.jurosPlano),
     solicita_plano:             item.solicitaPlano ?? null,
     emitente_cheque:            item.emitenteCheque ?? null,
     leitura_cmc7:               item.leituraCmc7 ?? null,
     data_vencimento:            item.dataVencimento ? new Date(item.dataVencimento) : null,
+    numero_vale_compra:         item.numeroValeCompra ?? null,
+    desconto_moeda:             n(item.descontoMoeda),
     codigo_origem:              item.codigoOrigem ?? null,
     codigo_agente:              item.codigoAgente ?? null,
     sangria_detalhada:          item.sangriaDetalhada ?? null,

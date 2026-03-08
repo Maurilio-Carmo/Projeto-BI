@@ -1,5 +1,8 @@
 // backend/src/modules/config/config.service.ts
-
+//
+// ── CORREÇÃO libSQL ──────────────────────────────────────────────────────────
+// result[0].insertId → result.lastInsertRowid  (BigInt | undefined)
+// ─────────────────────────────────────────────────────────────────────────────
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
@@ -27,10 +30,15 @@ export class SyncConfigService {
 
   async create(dto: CreateSyncConfigDto): Promise<SyncConfig> {
     const result  = await this.db.insert(syncConfig).values(dto);
-    const created = await this.findOne(Number(result[0].insertId));
+    // libSQL: lastInsertRowid é BigInt — converte para number
+    const newId   = result.lastInsertRowid ? Number(result.lastInsertRowid) : 0;
+    const created = await this.findOne(newId);
 
     if (created.is_active) {
-      this.syncScheduler.registerJob(created.entity_type as EntityType, Number(created.interval_hours));
+      this.syncScheduler.registerJob(
+        created.entity_type as EntityType,
+        Number(created.interval_hours),
+      );
     }
 
     return created;
@@ -38,11 +46,17 @@ export class SyncConfigService {
 
   async update(id: number, dto: UpdateSyncConfigDto): Promise<SyncConfig> {
     await this.findOne(id);
-    await this.db.update(syncConfig).set({ ...dto, updated_at: new Date() }).where(eq(syncConfig.id, id));
+    await this.db
+      .update(syncConfig)
+      .set({ ...dto, updated_at: new Date() })
+      .where(eq(syncConfig.id, id));
     const updated = await this.findOne(id);
 
     if (updated.is_active) {
-      this.syncScheduler.registerJob(updated.entity_type as EntityType, Number(updated.interval_hours));
+      this.syncScheduler.registerJob(
+        updated.entity_type as EntityType,
+        Number(updated.interval_hours),
+      );
     } else {
       this.syncScheduler.removeJob(updated.entity_type as EntityType);
     }
@@ -52,7 +66,10 @@ export class SyncConfigService {
 
   async resetLastSyncId(id: number): Promise<SyncConfig> {
     await this.findOne(id);
-    await this.db.update(syncConfig).set({ last_sync_id: 0, updated_at: new Date() }).where(eq(syncConfig.id, id));
+    await this.db
+      .update(syncConfig)
+      .set({ last_sync_id: 0, updated_at: new Date() })
+      .where(eq(syncConfig.id, id));
     return this.findOne(id);
   }
 

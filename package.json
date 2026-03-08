@@ -18,10 +18,10 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "node node_modules/@nestjs/cli/bin/nest.js build --config backend/nest-cli.json --path backend/tsconfig.build.json",
     "build:frontend": "node node_modules/vite/bin/vite.js build --config frontend/vite.config.ts",
-    "db:create": "ts-node --project scripts/tsconfig.json scripts/db-create.ts",
-    "db:push": "npm run db:create && node node_modules/drizzle-kit/bin.cjs push --config backend/drizzle.config.ts",
+    "db:push": "node node_modules/drizzle-kit/bin.cjs push --config backend/drizzle.config.ts",
     "db:generate": "node node_modules/drizzle-kit/bin.cjs generate --config backend/drizzle.config.ts",
-    "db:studio": "node node_modules/drizzle-kit/bin.cjs studio --config backend/drizzle.config.ts"
+    "db:studio": "node node_modules/drizzle-kit/bin.cjs studio --config backend/drizzle.config.ts",
+    "db:migrate": "node node_modules/drizzle-kit/bin.cjs migrate --config backend/drizzle.config.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",
@@ -33,6 +33,7 @@
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
+
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.2.15",
@@ -42,6 +43,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^4.0.3",
     "axios": "^1.6.0",
+    "@libsql/client": "^0.14.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "concurrently": "^9.0.0",
@@ -51,7 +53,6 @@
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.3",
-    "mysql2": "^3.6.0",
     "prettier": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

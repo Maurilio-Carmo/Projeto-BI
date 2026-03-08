@@ -2,7 +2,10 @@
 //
 // Orquestrador do loop de sincronização incremental.
 // Delega HTTP → SyncHttpService, upserts → Repositories.
-// Este arquivo só contém lógica de fluxo e controle de estado.
+//
+// ── CORREÇÃO libSQL ──────────────────────────────────────────────────────────
+// logResult[0].insertId → logResult.lastInsertRowid  (BigInt | undefined)
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
@@ -20,7 +23,7 @@ import { CupomRepository } from './repositories/cupom.repository';
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
 
-  /** Controla quais entidades estão com sync em execução (evita execuções paralelas) */
+  /** Evita execuções paralelas da mesma entidade */
   private readonly runningJobs = new Set<EntityType>();
 
   constructor(
@@ -44,7 +47,7 @@ export class SyncService {
     this.runningJobs.add(entityType);
     this.logger.log(`[${entityType}] Iniciando sync...`);
 
-    // ── Busca configuração ───────────────────────────────────────────────────
+    // ── Configuração ─────────────────────────────────────────────────────────
     const configs = await this.db
       .select()
       .from(syncConfig)
@@ -58,7 +61,7 @@ export class SyncService {
 
     const config = configs[0];
 
-    // ── Busca credencial ─────────────────────────────────────────────────────
+    // ── Credencial ───────────────────────────────────────────────────────────
     const creds = await this.db
       .select()
       .from(credencial)
@@ -75,10 +78,11 @@ export class SyncService {
     // ── Cria log de execução ─────────────────────────────────────────────────
     const logResult = await this.db.insert(syncLogs).values({
       entity_type: entityType,
-      status: 'running',
-      start_id: config.last_sync_id,
+      status:      'running',
+      start_id:    config.last_sync_id,
     });
-    const logId = Number(logResult[0].insertId);
+    // libSQL: lastInsertRowid é BigInt | undefined — converte para number
+    const logId = logResult.lastInsertRowid ? Number(logResult.lastInsertRowid) : 0;
 
     let totalImported = 0;
     let currentOffset = config.last_sync_id;
@@ -101,74 +105,50 @@ export class SyncService {
           BATCH_SIZE,
         );
 
-        // Resposta vazia ou nula: fim dos dados
         if (!result || result.items.length === 0) {
           this.logger.debug(`[${entityType}] Nenhum item retornado. Encerrando loop.`);
           break;
         }
 
-        // Captura o total da API no primeiro lote
         if (apiTotal === null) {
           apiTotal = result.total;
           this.logger.log(
-            `[${entityType}] Total de registros na API: ${apiTotal}. ` +
-            `Offset inicial: ${currentOffset}.`,
+            `[${entityType}] Total na API: ${apiTotal}. Offset inicial: ${currentOffset}.`,
           );
-
-          // Se não há registros novos (offset já está no total), encerra
           if (currentOffset >= apiTotal) {
             this.logger.log(`[${entityType}] Nenhum registro novo. Sync concluído.`);
             break;
           }
         }
 
-        // Persiste o lote atual
         const imported = await this.upsertBatch(entityType, result.items);
         totalImported += imported;
-
-        // Avança o offset pelo número de itens recebidos neste lote
         currentOffset += result.items.length;
 
         this.logger.debug(
-          `[${entityType}] Lote importado: ${imported} registros. ` +
-          `Progresso: ${currentOffset}/${apiTotal}`,
+          `[${entityType}] Lote: ${imported} registros. Progresso: ${currentOffset}/${apiTotal}`,
         );
 
         if (currentOffset >= apiTotal) {
-          this.logger.log(
-            `[${entityType}] Offset atingiu o total (${currentOffset}/${apiTotal}). ` +
-            `Encerrando loop.`,
-          );
+          this.logger.log(`[${entityType}] Offset atingiu total (${currentOffset}/${apiTotal}).`);
           break;
         }
       }
 
-      // ── Atualiza cursor (offset) para a próxima execução incremental ───────
+      // ── Atualiza cursor ───────────────────────────────────────────────────
       await this.db
         .update(syncConfig)
-        .set({
-          last_sync_id: currentOffset,
-          last_sync_at: new Date(),
-          updated_at:   new Date(),
-        })
+        .set({ last_sync_id: currentOffset, last_sync_at: new Date(), updated_at: new Date() })
         .where(eq(syncConfig.id, config.id));
 
-      // ── Finaliza log com sucesso ───────────────────────────────────────────
+      // ── Finaliza log com sucesso ──────────────────────────────────────────
       await this.db
         .update(syncLogs)
-        .set({
-          status:           'success',
-          // end_id registra o offset final desta execução
-          end_id:           currentOffset,
-          records_imported: totalImported,
-          finished_at:      new Date(),
-        })
+        .set({ status: 'success', end_id: currentOffset, records_imported: totalImported, finished_at: new Date() })
         .where(eq(syncLogs.id, logId));
 
       this.logger.log(
-        `[${entityType}] Sync concluído. ` +
-        `${totalImported} registros importados. ` +
-        `Novo offset (last_sync_id): ${currentOffset}.`,
+        `[${entityType}] Sync concluído. ${totalImported} registros. Novo offset: ${currentOffset}.`,
       );
 
     } catch (error) {
@@ -177,11 +157,7 @@ export class SyncService {
 
       await this.db
         .update(syncLogs)
-        .set({
-          status:        'error',
-          error_message: errorMessage,
-          finished_at:   new Date(),
-        })
+        .set({ status: 'error', error_message: errorMessage, finished_at: new Date() })
         .where(eq(syncLogs.id, logId));
 
     } finally {
@@ -189,25 +165,17 @@ export class SyncService {
     }
   }
 
-  private async upsertBatch(
-    entityType: EntityType,
-    items: any[],
-  ): Promise<number> {
+  private async upsertBatch(entityType: EntityType, items: any[]): Promise<number> {
     let imported = 0;
 
     for (const item of items) {
       try {
-        if (entityType === 'nota_venda') {
-          await this.notaVendaRepo.upsert(item);
-        } else if (entityType === 'nota_compra') {
-          await this.notaCompraRepo.upsert(item);
-        } else if (entityType === 'cupom') {
-          await this.cupomRepo.upsert(item);
-        }
-
+        if (entityType === 'nota_venda')        await this.notaVendaRepo.upsert(item);
+        else if (entityType === 'nota_compra')  await this.notaCompraRepo.upsert(item);
+        else if (entityType === 'cupom')        await this.cupomRepo.upsert(item);
         imported++;
       } catch (err) {
-        this.logger.error(`[${entityType}] Erro no upsert do item: ${String(err)}`);
+        this.logger.error(`[${entityType}] Erro no upsert: ${String(err)}`);
       }
     }
 

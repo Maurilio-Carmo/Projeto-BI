@@ -1,10 +1,12 @@
 // backend/src/modules/sync/repositories/cupom.repository.ts
-//
-// Isola toda a lógica de persistência (upsert) das entidades
-// cupom, cupom_item e cupom_finalizacao.
-
+// ── MIGRAÇÃO MySQL → SQLite ──────────────────────────────────────────────────
+// Alterações:
+//   • cupom principal:     onConflictDoUpdate target: cupom.external_id
+//   • cupomItem:           onConflictDoNothing (sem unique composta)
+//   • cupomFinalizacao:    onConflictDoNothing (sem unique composta)
+// ─────────────────────────────────────────────────────────────────────────────
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { DrizzleDB } from '../../../database/drizzle';
+import { DrizzleDB }  from '../../../database/drizzle';
 import { cupom, cupomItem, cupomFinalizacao } from '../../../database/schema';
 import {
   mapCupomToDb,
@@ -22,15 +24,19 @@ export class CupomRepository {
 
   /**
    * Faz upsert do cupom fiscal, seus itens de venda e suas finalizações.
-   * Usa onDuplicateKeyUpdate para garantir idempotência.
+   * SQLite: usa onConflictDoUpdate / onConflictDoNothing.
    */
   async upsert(item: any): Promise<void> {
     const values = mapCupomToDb(item);
 
+    // Upsert do cupom — conflito em external_id (UNIQUE)
     await this.db
       .insert(cupom)
       .values(values)
-      .onDuplicateKeyUpdate({ set: { ...values, updated_at: new Date() } });
+      .onConflictDoUpdate({
+        target: cupom.external_id,
+        set: { ...values, updated_at: new Date() },
+      });
 
     const cupomExtId = Number(item.identificadorId);
 
@@ -41,7 +47,7 @@ export class CupomRepository {
         await this.db
           .insert(cupomItem)
           .values(itemValues)
-          .onDuplicateKeyUpdate({ set: { ...itemValues, updated_at: new Date() } });
+          .onConflictDoNothing();
       }
     }
 
@@ -52,7 +58,7 @@ export class CupomRepository {
         await this.db
           .insert(cupomFinalizacao)
           .values(finValues)
-          .onDuplicateKeyUpdate({ set: { ...finValues, updated_at: new Date() } });
+          .onConflictDoNothing();
       }
     }
   }
