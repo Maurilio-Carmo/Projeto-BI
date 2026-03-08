@@ -1,6 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // RetailBI Sync — Database Schema Index
-// 1 tabela por arquivo. Barrel de exportação centralizada.
 // Total: 46 tabelas
 // ═══════════════════════════════════════════════════════════════════════════
 
