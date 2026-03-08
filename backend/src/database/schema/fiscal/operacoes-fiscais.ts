@@ -10,7 +10,6 @@ export const operacoesFiscais = sqliteTable(
   'operacoes_fiscais',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:  text('descricao'),
     observacao: text('observacao'),
@@ -48,7 +47,6 @@ export const operacoesFiscais = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_op_fisc_external_id').on(t.externalId),
     idxTipo:       index('idx_op_fisc_tipo').on(t.tipoDeOperacao),
   }),
 );

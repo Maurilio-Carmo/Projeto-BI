@@ -26,7 +26,6 @@ export const notasCompra = sqliteTable(
   'notas_compra',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     // ── Partes envolvidas ─────────────────────────────────────────────────────
     lojaId:                 integer('loja_id').notNull(),
@@ -119,7 +118,6 @@ export const notasCompra = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId:  index('idx_nf_compra_external_id').on(t.externalId),
     idxChaveNfe:    index('idx_nf_compra_chave_nfe').on(t.chaveDaNfe),
     idxDataEmissao: index('idx_nf_compra_data_emissao').on(t.dataEmissao),
     idxSituacao:    index('idx_nf_compra_situacao').on(t.situacao),

@@ -11,7 +11,6 @@ export const impostosFederais = sqliteTable(
   'impostos_federais',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: text('external_id').notNull().unique(), // string na API
 
     descricao:  text('descricao').notNull(),
     retencao:   real('retencao'),
@@ -25,7 +24,6 @@ export const impostosFederais = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_imp_fed_external_id').on(t.externalId),
     idxTipo:       index('idx_imp_fed_tipo').on(t.tipoImposto),
   }),
 );

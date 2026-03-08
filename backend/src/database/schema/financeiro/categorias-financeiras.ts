@@ -10,7 +10,6 @@ export const categoriasFinanceiras = sqliteTable(
   'categorias_financeiras',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:             text('descricao'),
     codigoContabilExterno: integer('codigo_contabil_externo'),
@@ -33,7 +32,6 @@ export const categoriasFinanceiras = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_cat_fin_external_id').on(t.externalId),
     idxPai:        index('idx_cat_fin_pai').on(t.codigoDaCategoriaPai),
     idxClassif:    index('idx_cat_fin_classif').on(t.classificacaoDaCategoria),
   }),

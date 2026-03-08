@@ -10,7 +10,6 @@ export const clientes = sqliteTable(
   'clientes',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     // ── Identificação ────────────────────────────────────────────────────────
     nome:                 text('nome').notNull(),
@@ -112,7 +111,6 @@ export const clientes = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId:  index('idx_clientes_external_id').on(t.externalId),
     idxDocumento:   index('idx_clientes_documento').on(t.numeroDoDocumento),
     idxNome:        index('idx_clientes_nome').on(t.nome),
     idxStatus:      index('idx_clientes_status_id').on(t.statusId),

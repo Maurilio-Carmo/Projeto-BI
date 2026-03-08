@@ -10,7 +10,6 @@ export const secoes = sqliteTable(
   'secoes',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao').notNull(),
 
@@ -21,7 +20,6 @@ export const secoes = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_secoes_external_id').on(t.externalId),
   }),
 );
 

@@ -9,7 +9,6 @@ export const motivosCancelamento = sqliteTable(
   'motivos_cancelamento',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao'),
 
@@ -19,7 +18,6 @@ export const motivosCancelamento = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_mot_can_external_id').on(t.externalId),
   }),
 );
 

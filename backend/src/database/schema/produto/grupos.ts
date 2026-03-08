@@ -10,10 +10,8 @@ export const grupos = sqliteTable(
   'grupos',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(), // grupoId global
 
-    idNaSecao:       integer('id_na_secao').notNull(),     // id relativo à seção
-    secaoExternalId: integer('secao_external_id').notNull(),
+    secaoId: integer('secao_external_id').notNull(),
 
     descricao: text('descricao').notNull(),
 
@@ -24,8 +22,6 @@ export const grupos = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_grupos_external_id').on(t.externalId),
-    idxSecao:      index('idx_grupos_secao_external_id').on(t.secaoExternalId),
   }),
 );
 

@@ -10,7 +10,6 @@ export const contasCorrentes = sqliteTable(
   'contas_correntes',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:        text('descricao').notNull(),
     agencia:          text('agencia'),
@@ -26,7 +25,6 @@ export const contasCorrentes = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_cont_corr_external_id').on(t.externalId),
     idxLoja:       index('idx_cont_corr_loja_id').on(t.lojaId),
     idxAgente:     index('idx_cont_corr_agente_id').on(t.agenteFinanceiroId),
   }),

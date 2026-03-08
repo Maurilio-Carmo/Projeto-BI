@@ -9,7 +9,6 @@ export const marcas = sqliteTable(
   'marcas',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao').notNull(),
 
@@ -20,7 +19,6 @@ export const marcas = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_marcas_external_id').on(t.externalId),
   }),
 );
 

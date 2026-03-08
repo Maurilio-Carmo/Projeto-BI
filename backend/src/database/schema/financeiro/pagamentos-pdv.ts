@@ -11,7 +11,6 @@ export const pagamentosPdv = sqliteTable(
   'pagamentos_pdv',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:   text('descricao').notNull(),
     categoriaId: integer('categoria_id').notNull(),
@@ -20,7 +19,6 @@ export const pagamentosPdv = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_pag_pdv_external_id').on(t.externalId),
     idxCategoria:  index('idx_pag_pdv_categoria_id').on(t.categoriaId),
   }),
 );

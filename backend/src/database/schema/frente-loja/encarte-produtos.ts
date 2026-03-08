@@ -16,9 +16,7 @@ export const encarteProdutos = sqliteTable(
       .notNull()
       .references(() => encartes.id, { onDelete: 'cascade' }),
 
-    externalId: integer('external_id'), // id do ProdutoEncarte
-
-    produtoId: integer('produto_id').notNull(), // external_id do produto
+    produtoId: integer('produto_id').notNull(),
 
     valorOfertaPreco1: real('valor_oferta_preco_1'),
     valorOfertaPreco2: real('valor_oferta_preco_2'),

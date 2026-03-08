@@ -21,16 +21,11 @@ export const products = sqliteTable(
     // ── Chave local ──────────────────────────────────────────────────────────
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // ── Chave externa (API) ──────────────────────────────────────────────────
-    externalId: integer('external_id').notNull().unique(),
-
     // ── Identificação ────────────────────────────────────────────────────────
     descricao:         text('descricao').notNull(),
     descricaoReduzida: text('descricao_reduzida').notNull(),
     codigoInterno:     text('codigo_interno'),
     modelo:            text('modelo'),
-    imagem:            text('imagem'),
-    endereco:          text('endereco'), // localização no depósito
 
     // ── Classificação ────────────────────────────────────────────────────────
     secaoId:    integer('secao_id'),
@@ -96,13 +91,13 @@ export const products = sqliteTable(
       ],
     }).notNull(),
 
-    ipi:           real('ipi'),
-    tipoIPI:       text('tipo_ipi', { enum: ['PERCENTUAL', 'VALOR'] }),
-    incidenciaIPI: text('incidencia_ipi', { enum: ['COMPRA', 'VENDA', 'AMBOS'] }),
-    codigoANP:     text('codigo_anp'),
-    tipoAgregacao: text('tipo_agregacao', { enum: ['PAUTA', 'MARGEM'] }),
+    ipi:            real('ipi'),
+    tipoIPI:        text('tipo_ipi', { enum: ['PERCENTUAL', 'VALOR'] }),
+    incidenciaIPI:  text('incidencia_ipi', { enum: ['COMPRA', 'VENDA', 'AMBOS'] }),
+    codigoANP:      text('codigo_anp'),
+    tipoAgregacao:  text('tipo_agregacao', { enum: ['PAUTA', 'MARGEM'] }),
     valorAgregacao: real('valor_agregacao'),
-    indiceAT:      text('indice_at', { enum: ['ARREDONDA', 'TRUNCA'] }),
+    indiceAT:       text('indice_at', { enum: ['ARREDONDA', 'TRUNCA'] }),
     compoeTotalDaNota: integer('compoe_total_da_nota', { mode: 'boolean' }),
     incentivoZonaFranca: text('incentivo_zona_franca'),
 
@@ -178,7 +173,6 @@ export const products = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId:  index('idx_products_external_id').on(t.externalId),
     idxSecao:       index('idx_products_secao_id').on(t.secaoId),
     idxGrupo:       index('idx_products_grupo_id').on(t.grupoId),
     idxSubgrupo:    index('idx_products_subgrupo_id').on(t.subgrupoId),

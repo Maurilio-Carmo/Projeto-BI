@@ -1,6 +1,6 @@
 import { sqliteTable, integer, real, text, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { tabelasTributarias } from '../tabelas-tributarias';
+import { tabelasTributarias } from './tabelas-tributarias';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TABELAS_TRIBUTARIAS_ITENS

@@ -11,7 +11,6 @@ export const tabelasTributarias = sqliteTable(
   'tabelas_tributarias',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     situacaoFiscalId: integer('situacao_fiscal_id'),
     figuraFiscalId:   integer('figura_fiscal_id'),
@@ -28,7 +27,6 @@ export const tabelasTributarias = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_tab_trib_external_id').on(t.externalId),
     idxUf:         index('idx_tab_trib_uf').on(t.uf),
     idxTipo:       index('idx_tab_trib_tipo').on(t.tipoDeOperacao),
     idxRegime:     index('idx_tab_trib_regime').on(t.regimeEstadualId),

@@ -1,6 +1,6 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './products';
+import { products } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT_ESTOQUE

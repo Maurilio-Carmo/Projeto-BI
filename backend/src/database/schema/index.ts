@@ -11,16 +11,16 @@ export * from './produto/marcas';
 export * from './produto/familias';
 
 // ── Produto — sub-tabelas (FK → products) ────────────────────────────────────
-export * from './produto/products';
-export * from './produto/product-impostos-federais';
-export * from './produto/product-estoque';
-export * from './produto/product-componentes';
-export * from './produto/product-pautas';
-export * from './produto/product-regimes';
-export * from './produto/product-codigos-auxiliares';
-export * from './produto/product-precos';
-export * from './produto/product-custos';
-export * from './produto/product-fornecedores';
+export * from './produto/produto';
+export * from './produto/produto-impostos-federais';
+export * from './produto/produto-estoque';
+export * from './produto/produto-componentes';
+export * from './produto/produto-pautas';
+export * from './produto/produto-regimes';
+export * from './produto/produto-codigos-auxiliares';
+export * from './produto/produto-precos';
+export * from './produto/produto-custos';
+export * from './produto/produto-fornecedores';
 
 // ── Pessoas ──────────────────────────────────────────────────────────────────
 export * from './pessoa/clientes';

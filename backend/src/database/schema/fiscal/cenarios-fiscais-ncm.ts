@@ -10,7 +10,6 @@ export const cenariosFiscaisNcm = sqliteTable(
   'cenarios_fiscais_ncm',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:  text('descricao'),
     cst:        integer('cst'),
@@ -20,7 +19,6 @@ export const cenariosFiscaisNcm = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_cen_fisc_ncm_external_id').on(t.externalId),
   }),
 );
 

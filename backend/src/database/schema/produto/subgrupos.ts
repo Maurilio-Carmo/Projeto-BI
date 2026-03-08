@@ -10,11 +10,9 @@ export const subgrupos = sqliteTable(
   'subgrupos',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(), // subgrupoId global
 
-    idNoGrupo:       integer('id_no_grupo').notNull(),     // id relativo ao grupo
-    secaoExternalId: integer('secao_external_id').notNull(),
-    grupoExternalId: integer('grupo_external_id').notNull(),
+    secaoId: integer('secao_id').notNull(),
+    grupoId: integer('grupo_id').notNull(),
 
     descricao: text('descricao').notNull(),
 
@@ -25,9 +23,8 @@ export const subgrupos = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_subgrupos_external_id').on(t.externalId),
-    idxGrupo:      index('idx_subgrupos_grupo_external_id').on(t.grupoExternalId),
-    idxSecao:      index('idx_subgrupos_secao_external_id').on(t.secaoExternalId),
+    idxGrupo:      index('idx_subgrupos_grupo_id').on(t.grupoId),
+    idxSecao:      index('idx_subgrupos_secao_id').on(t.secaoId),
   }),
 );
 

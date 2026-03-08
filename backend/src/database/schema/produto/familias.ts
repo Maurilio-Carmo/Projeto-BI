@@ -10,7 +10,6 @@ export const familias = sqliteTable(
   'familias',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao'),
 
@@ -23,7 +22,6 @@ export const familias = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_familias_external_id').on(t.externalId),
   }),
 );
 

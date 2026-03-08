@@ -1,6 +1,6 @@
 import { sqliteTable, integer, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { cenariosFiscaisNcm } from '../cenarios-fiscais-ncm';
+import { cenariosFiscaisNcm } from './cenarios-fiscais-ncm';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CENARIO_FISCAL_NCM_UFS_DESTINO

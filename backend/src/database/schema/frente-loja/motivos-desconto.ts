@@ -9,7 +9,6 @@ export const motivosDesconto = sqliteTable(
   'motivos_desconto',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao'),
 
@@ -24,7 +23,6 @@ export const motivosDesconto = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_mot_desc_external_id').on(t.externalId),
   }),
 );
 

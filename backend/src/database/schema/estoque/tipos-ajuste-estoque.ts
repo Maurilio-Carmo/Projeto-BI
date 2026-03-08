@@ -9,7 +9,6 @@ export const tiposAjusteEstoque = sqliteTable(
   'tipos_ajuste_estoque',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao: text('descricao').notNull(),
 
@@ -32,7 +31,6 @@ export const tiposAjusteEstoque = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_tipo_ajuste_external_id').on(t.externalId),
     idxTipo:       index('idx_tipo_ajuste_tipo').on(t.tipoDeOperacao),
   }),
 );

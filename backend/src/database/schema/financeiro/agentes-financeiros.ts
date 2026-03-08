@@ -11,7 +11,6 @@ export const agentesFinanceiros = sqliteTable(
   'agentes_financeiros',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     // ── Identificação ────────────────────────────────────────────────────────
     nome:                 text('nome'),
@@ -61,7 +60,6 @@ export const agentesFinanceiros = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_agentes_fin_external_id').on(t.externalId),
     idxNome:       index('idx_agentes_fin_nome').on(t.nome),
     idxBanco:      index('idx_agentes_fin_banco').on(t.codigoDoBanco),
   }),

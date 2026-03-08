@@ -10,7 +10,6 @@ export const estoqueSaldos = sqliteTable(
   'estoque_saldos',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     lojaId:    integer('loja_id').notNull(),
     produtoId: integer('produto_id').notNull(), // external_id do produto
@@ -25,7 +24,6 @@ export const estoqueSaldos = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId:     index('idx_estq_sald_external_id').on(t.externalId),
     idxProduto:        index('idx_estq_sald_produto_id').on(t.produtoId),
     idxLoja:           index('idx_estq_sald_loja_id').on(t.lojaId),
     idxLocal:          index('idx_estq_sald_local_id').on(t.localId),

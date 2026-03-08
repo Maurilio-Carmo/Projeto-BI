@@ -1,6 +1,6 @@
 import { sqliteTable, integer, real, text, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './products';
+import { products } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT_COMPONENTES
@@ -13,13 +13,9 @@ export const productComponentes = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products (produto pai — o kit/composto)
     productId: integer('product_id')
       .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
-
-    // external id do componente (productId da API)
-    componenteExternalId: integer('componente_external_id').notNull(),
 
     quantidade: real('quantidade').notNull(),
     preco1:     real('preco_1').notNull(),
@@ -31,7 +27,6 @@ export const productComponentes = sqliteTable(
   },
   (t) => ({
     idxProductId:   index('idx_prod_comp_product_id').on(t.productId),
-    idxComponente:  index('idx_prod_comp_ext_id').on(t.componenteExternalId),
   }),
 );
 

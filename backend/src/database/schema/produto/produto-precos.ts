@@ -1,6 +1,6 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './products';
+import { products } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCT_PRECOS — /v1/produto/precos
@@ -12,9 +12,6 @@ export const productPrecos = sqliteTable(
   'product_precos',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-
-    // External id do registro de preço
-    externalId: integer('external_id'),
 
     // FK → products
     productId: integer('product_id')

@@ -9,8 +9,6 @@ export const fornecedores = sqliteTable(
   'fornecedores',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
-    idExterno:  text('id_externo'), // UUID externo do sistema origem
 
     // ── Identificação ────────────────────────────────────────────────────────
     nome:                 text('nome'),
@@ -103,7 +101,6 @@ export const fornecedores = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_fornecedores_external_id').on(t.externalId),
     idxDocumento:  index('idx_fornecedores_documento').on(t.numeroDoDocumento),
     idxNome:       index('idx_fornecedores_nome').on(t.nome),
     idxTipo:       index('idx_fornecedores_tipo').on(t.tipoDeFornecedor),

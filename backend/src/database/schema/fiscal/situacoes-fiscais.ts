@@ -10,7 +10,6 @@ export const situacoesFiscais = sqliteTable(
   'situacoes_fiscais',
   {
     id:         integer('id').primaryKey({ autoIncrement: true }),
-    externalId: integer('external_id').notNull().unique(),
 
     descricao:         text('descricao').notNull(),
     descricaoCompleta: text('descricao_completa').notNull(),
@@ -21,7 +20,6 @@ export const situacoesFiscais = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxExternalId: index('idx_sit_fisc_external_id').on(t.externalId),
   }),
 );
 
