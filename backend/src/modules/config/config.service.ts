@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
 import { syncConfig } from '../../database/schema';
 import { SyncScheduler } from '../sync/sync.scheduler';
-import type { EntityType, SyncConfig } from '../../database/schema/sync-config';
+import type { EntityType, SyncConfig } from '../../database/schema/infra/sync-config';
 import { CreateSyncConfigDto, UpdateSyncConfigDto } from './dto/sync-config.dto';
 
 @Injectable()

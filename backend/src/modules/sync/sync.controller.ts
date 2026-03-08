@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { SyncService } from './sync.service';
 import { SyncScheduler } from './sync.scheduler';
-import type { EntityType } from '../../database/schema/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 
 const VALID_ENTITY_TYPES: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
 

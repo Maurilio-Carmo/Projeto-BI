@@ -9,11 +9,11 @@ import { Injectable, Inject } from '@nestjs/common';
 import { desc, eq, and, count } from 'drizzle-orm';
 import { SQL } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
-import { syncLogs }  from '../../database/schema/sync-logs';
-import { syncConfig } from '../../database/schema/sync-config';
-import type { SyncLog }    from '../../database/schema/sync-logs';
-import type { SyncConfig } from '../../database/schema/sync-config';
-import type { EntityType } from '../../database/schema/sync-config';
+import { syncLogs }  from '../../database/schema/infra/sync-logs';
+import { syncConfig } from '../../database/schema/infra/sync-config';
+import type { SyncLog }    from '../../database/schema/infra/sync-logs';
+import type { SyncConfig } from '../../database/schema/infra/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 
 interface FindLogsParams {
   entity?: EntityType;

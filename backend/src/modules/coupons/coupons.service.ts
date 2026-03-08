@@ -3,7 +3,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { desc, count, sql } from 'drizzle-orm';
 import { DRIZZLE_TOKEN } from '../../database/database.module';
 import { Database } from '../../database/drizzle';
-import { cupom } from '../../database/schema/cupom'; // ✅ era './schema/coupons'
+import { cupom } from '../../database/schema/transacoes/cupom'; // ✅ era './schema/coupons'
 
 @Injectable()
 export class CouponsService {

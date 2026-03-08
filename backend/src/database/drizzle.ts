@@ -11,12 +11,12 @@ import { drizzle }      from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as path        from 'path';
 import * as fs          from 'fs';
-import * as credencialSchema from './schema/credencial';
-import * as notaVendaSchema  from './schema/nota-venda';
-import * as notaCompraSchema from './schema/nota-compra';
-import * as cupomSchema      from './schema/cupom';
-import * as syncConfigSchema from './schema/sync-config';
-import * as syncLogsSchema   from './schema/sync-logs';
+import * as credencialSchema from './schema/infra/credencial';
+import * as notaVendaSchema  from './schema/transacoes/nota-venda';
+import * as notaCompraSchema from './schema/transacoes/nota-compra';
+import * as cupomSchema      from './schema/transacoes/cupom';
+import * as syncConfigSchema from './schema/infra/sync-config';
+import * as syncLogsSchema   from './schema/infra/sync-logs';
 
 export const schema = {
   ...credencialSchema,

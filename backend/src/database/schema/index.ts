@@ -1,10 +1,68 @@
-// backend/src/database/schema/index.ts
-// Exporta todos os schemas para uso no DrizzleORM e drizzle-kit
-// ── Sem alterações de lógica — apenas os arquivos fontes mudaram (MySQL → SQLite)
+// ═══════════════════════════════════════════════════════════════════════════
+// RetailBI Sync — Database Schema Index
+// 1 tabela por arquivo. Barrel de exportação centralizada.
+// Total: 46 tabelas
+// ═══════════════════════════════════════════════════════════════════════════
 
-export * from './credencial';
-export * from './nota-venda';
-export * from './nota-compra';
-export * from './cupom';
-export * from './sync-config';
-export * from './sync-logs';
+// ── Produto — sub-tabelas (FK → products) ────────────────────────────────────
+export * from './produto/products';
+export * from './produto/product-impostos-federais';
+export * from './produto/product-estoque';
+export * from './produto/product-componentes';
+export * from './produto/product-pautas';
+export * from './produto/product-regimes';
+export * from './produto/product-codigos-auxiliares';
+export * from './produto/product-precos';
+export * from './produto/product-custos';
+export * from './produto/product-fornecedores';
+
+// ── Classificação de produtos ────────────────────────────────────────────────
+export * from './produto/secoes';
+export * from './produto/grupos';
+export * from './produto/subgrupos';
+export * from './produto/marcas';
+
+// ── Pessoas ──────────────────────────────────────────────────────────────────
+export * from './pessoa/clientes';
+export * from './pessoa/cliente-enderecos';
+export * from './pessoa/fornecedores';
+
+// ── Fiscal ───────────────────────────────────────────────────────────────────
+export * from './fiscal/situacoes-fiscais';
+export * from './fiscal/operacoes-fiscais';
+export * from './fiscal/operacoes-fiscais-cfops';
+export * from './fiscal/cenarios-fiscais-ncm';
+export * from './fiscal/cenario-fiscal-ncm-ncms';
+export * from './fiscal/cenario-fiscal-ncm-lojas';
+export * from './fiscal/cenario-fiscal-ncm-ufs-destino';
+export * from './fiscal/impostos-federais';
+export * from './fiscal/impostos-federais-geral';
+export * from './fiscal/tabelas-tributarias';
+export * from './fiscal/tabelas-tributarias-itens';
+
+// ── Financeiro ───────────────────────────────────────────────────────────────
+export * from './financeiro/agentes-financeiros';
+export * from './financeiro/categorias-financeiras';
+export * from './financeiro/contas-correntes';
+export * from './financeiro/historicos-padrao';
+export * from './financeiro/pagamentos-pdv';
+export * from './financeiro/pagamentos-pdv-lojas';
+export * from './financeiro/recebimentos-pdv';
+export * from './financeiro/recebimentos-pdv-lojas';
+
+// ── Estoque ───────────────────────────────────────────────────────────────────
+export * from './estoque/locais-estoque';
+export * from './estoque/estoque-saldos';
+export * from './estoque/tipos-ajuste-estoque';
+
+// ── Motivos PDV ───────────────────────────────────────────────────────────────
+export * from './frente-loja/motivos-acrescimo';
+export * from './frente-loja/motivos-desconto';
+export * from './frente-loja/motivos-devolucao';
+export * from './frente-loja/motivos-cancelamento';
+
+// ── Infraestrutura de Sync ────────────────────────────────────────────────────
+export * from './infra/credencial';
+export * from './infra/sync-config';
+export * from './infra/sync-logs';
+export * from './infra/import-stats';

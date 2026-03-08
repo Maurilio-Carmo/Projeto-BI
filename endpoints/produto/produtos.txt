@@ -61,10 +61,10 @@ items:	[Produto{
 	Informar se é frente de loja
 
 	itensImpostosFederais:	[ItemImpostoFederal{
-	id:	string
-	Identificador único do item do imposto federal
+		id:	string
+		Identificador único do item do imposto federal
 
-	}]
+		}]
 	description:Itens dos impostos federais
 	descontoMaximo3:	number ($double)
 	Desconto máximo 3
@@ -142,13 +142,13 @@ items:	[Produto{
 	Itens da embalagem venda
 
 	regimesDoProduto:	[RegimeEstadualProduto{
-	lojaId:	integer ($int64)
-	Código da loja
+		lojaId:	integer ($int64)
+		Código da loja
 
-	regimeEstadualId:	integer ($int64)
-	Código regime estadual
+		regimeEstadualId:	integer ($int64)
+		Código regime estadual
 
-	}]
+		}]
 	description:Regime estadual do produto
 	finalidadeProduto:	string
 	Informar a finalidade do produto
@@ -197,42 +197,42 @@ items:	[Produto{
 	Comprimento do produto
 
 	componentes:	[Componente{
-	id:	integer ($int64)
-	Código
+		id:	integer ($int64)
+		Código
 
-	produtoId:	integer ($int64)
-	Código do produto
+		produtoId:	integer ($int64)
+		Código do produto
 
-	quantidade:	number *($double)
-	Quantidade Componente
+		quantidade:	number *($double)
+		Quantidade Componente
 
-	preco1:	number *($double)
-	Preco 1
+		preco1:	number *($double)
+		Preco 1
 
-	preco2:	number *($double)
-	Preco 2
+		preco2:	number *($double)
+		Preco 2
 
-	preco3:	number *($double)
-	Preco 3
+		preco3:	number *($double)
+		Preco 3
 
-	}]
+		}]
 	description:Componentes do produto
 	participaCotacao:	boolean
 	Informar se participa ou não de cotação
 
 	pautasDoProduto:	[PautaDoProduto{
-	uf:	string
-	Sigla do estado
+		uf:	string
+		Sigla do estado
 
-	tipoDePauta:	string
-	Tipo de pauta
+		tipoDePauta:	string
+		Tipo de pauta
 
-	Enum:
-	[ FIXA, MINIMA ]
-	valorDePauta:	number ($double)
-	Valor da pauta
+		Enum:
+		[ FIXA, MINIMA ]
+		valorDePauta:	number ($double)
+		Valor da pauta
 
-	}]
+		}]
 	description:Pautas do produto
 	fatorBonificacao:	number ($double)
 	Fator de bonificação do produto
@@ -333,17 +333,17 @@ items:	[Produto{
 	Código do funcionário
 
 	estoqueDoProduto:	[EstoqueDoProduto{
-	lojaId:	integer *($int64)
-	Identificador único da loja
+		lojaId:	integer *($int64)
+		Identificador único da loja
 
-	estoqueMinimo:	number *($double)
-	Estoque mínimo do produto
+		estoqueMinimo:	number *($double)
+		Estoque mínimo do produto
 
-	estoqueMaximo:	number *($double)
-	Estoque máximo do produto
+		estoqueMaximo:	number *($double)
+		Estoque máximo do produto
 
-	}]
-	description:Estoque do produto
+		}]
+		description:Estoque do produto
 	custoMedio:	number ($double)
 	Custo médio do produto
 

@@ -3,7 +3,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { desc, count, sql } from 'drizzle-orm';
 import { DRIZZLE_TOKEN } from '../../database/database.module';
 import { Database } from '../../database/drizzle';
-import { notaVenda } from '../../database/schema/nota-venda'; // ✅ era './schema/invoices'
+import { notaVenda } from '../../database/schema/transacoes/nota-venda'; // ✅ era './schema/invoices'
 
 @Injectable()
 export class InvoicesService {

@@ -8,7 +8,7 @@ import { DrizzleDB } from '../../database/drizzle';
 import { syncConfig } from '../../database/schema';
 import { SyncService } from './sync.service';
 import { intervalHoursToCron } from './utils/cron.utils';
-import type { EntityType } from '../../database/schema/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 
 @Injectable()
 export class SyncScheduler implements OnModuleInit {

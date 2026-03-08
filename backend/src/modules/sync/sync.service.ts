@@ -11,7 +11,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
 import { syncConfig, syncLogs, credencial } from '../../database/schema';
-import type { EntityType } from '../../database/schema/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 import { SyncHttpService } from './sync.http.service';
 import { NotaVendaRepository } from './repositories/nota-venda.repository';
 import { NotaCompraRepository } from './repositories/nota-compra.repository';

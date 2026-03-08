@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import type { EntityType } from '../../database/schema/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 
 export interface ApiListResponse<T = unknown> {
   start:  number;

@@ -3,7 +3,7 @@ import {
   Controller, Get, Query, ParseIntPipe, DefaultValuePipe,
 } from '@nestjs/common';
 import { LogsService } from './logs.service';
-import type { EntityType } from '../../database/schema/sync-config';
+import type { EntityType } from '../../database/schema/infra/sync-config';
 
 const VALID_ENTITIES: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
 const VALID_STATUSES = ['success', 'error', 'running'] as const;

@@ -15,7 +15,7 @@ import {
 import { SyncConfigService } from './config.service';
 import { CreateSyncConfigDto, UpdateSyncConfigDto } from './dto/sync-config.dto';
 import { SyncScheduler } from '../sync/sync.scheduler';
-import type { SyncConfig } from '../../database/schema/sync-config';
+import type { SyncConfig } from '../../database/schema/infra/sync-config';
 
 @Controller('api/config')
 export class ConfigController {
