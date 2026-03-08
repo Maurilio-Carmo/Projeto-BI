@@ -10,7 +10,7 @@ export * from './produto/subgrupos';
 export * from './produto/marcas';
 export * from './produto/familias';
 
-// ── Produto — sub-tabelas (FK → products) ────────────────────────────────────
+// ── Produto — sub-tabelas (FK → produtos) ────────────────────────────────────
 export * from './produto/produto';
 export * from './produto/produto-impostos-federais';
 export * from './produto/produto-estoque';

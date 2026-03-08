@@ -1,8 +1,12 @@
 import { sqliteTable, integer, text, index, primaryKey } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { grupos } from './grupos';
 
 // SUBGRUPOS — /v1/produto/subgrupos
+// ── FK removida intencionalmente ─────────────────────────────────────────────
+// A PK de `grupos` é composta (secao_id, grupo_id). O DrizzleORM + SQLite
+// não suporta FK composta via .references() inline em colunas individuais.
+// A integridade é mantida via código (sync hierárquico) e pelos índices abaixo.
+// ─────────────────────────────────────────────────────────────────────────────
 export const subgrupos = sqliteTable('subgrupos', {
   secaoId:    integer('secao_id').notNull(),
   grupoId:    integer('grupo_id').notNull(),

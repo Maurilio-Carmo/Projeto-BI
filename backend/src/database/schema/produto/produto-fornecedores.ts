@@ -1,21 +1,21 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_FORNECEDORES — /v1/produto/produtos/{produtoId}/fornecedores
+// PRODUTO_FORNECEDORES — /v1/produto/produtos/{produtoId}/fornecedores
 // Referências do produto no catálogo de cada fornecedor.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productFornecedores = sqliteTable(
-  'product_fornecedores',
+export const produtoFornecedores = sqliteTable(
+  'produto_fornecedores',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     // External id do fornecedor
     fornecedorId: integer('fornecedor_id').notNull(),
@@ -32,11 +32,11 @@ export const productFornecedores = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId:   index('idx_prod_forn_product_id').on(t.productId),
-    idxFornecedor:  index('idx_prod_forn_fornecedor_id').on(t.fornecedorId),
-    uniqProductForn: unique('uq_prod_forn_product_fornecedor').on(t.productId, t.fornecedorId, t.referencia),
+    idxProdutoId:       index('idx_prod_forn_produto_id').on(t.produtoId),
+    idxFornecedor:      index('idx_prod_forn_fornecedor_id').on(t.fornecedorId),
+    uniqProdutoForn:    unique('uq_prod_forn_produto_fornecedor').on(t.produtoId, t.fornecedorId, t.referencia),
   }),
 );
 
-export type ProductFornecedor    = typeof productFornecedores.$inferSelect;
-export type NewProductFornecedor = typeof productFornecedores.$inferInsert;
+export type ProdutoFornecedor    = typeof produtoFornecedores.$inferSelect;
+export type NewProdutoFornecedor = typeof produtoFornecedores.$inferInsert;

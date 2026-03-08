@@ -1,5 +1,10 @@
 import { sqliteTable, integer, text, real, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { secoes } from './secoes';
+import { grupos } from './grupos';
+import { subgrupos } from './subgrupos';
+import { marcas } from './marcas';
+import { familias } from './familias';
 
 // PRODUTOS — /v1/produto/produtos
 export const produtos = sqliteTable('produtos', {
@@ -10,11 +15,11 @@ export const produtos = sqliteTable('produtos', {
   descricaoReduzida: text('descricao_reduzida').notNull(),
 
   // ── Classificação (FKs pelo padrão tableName+Id) ─────────────────────────
-  secaoId:    integer('secao_id'),
-  grupoId:    integer('grupo_id'),
-  subgrupoId: integer('subgrupo_id'),
-  marcaId:    integer('marca_id'),
-  familiaId:  integer('familia_id'),
+  secaoId:    integer('secao_id').references(() => secoes.secaoId),
+  grupoId:    integer('grupo_id').references(() => grupos.grupoId),
+  subgrupoId: integer('subgrupo_id').references(() => subgrupos.subgrupoId),
+  marcaId:    integer('marca_id').references(() => marcas.marcaId),
+  familiaId:  integer('familia_id').references(() => familias.familiaId),
 
   // ── Composição ───────────────────────────────────────────────────────────
   composicao: text('composicao', {

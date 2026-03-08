@@ -1,22 +1,22 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_PRECOS — /v1/produto/precos
+// PRODUTO_PRECOS — /v1/produto/precos
 // Preços de venda / oferta por produto × loja.
 // Múltiplas tabelas de preço (1, 2, 3) e preços de oferta.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productPrecos = sqliteTable(
-  'product_precos',
+export const produtoPrecos = sqliteTable(
+  'produto_precos',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     lojaId: integer('loja_id').notNull(),
 
@@ -55,30 +55,20 @@ export const productPrecos = sqliteTable(
         'REAJUSTE_INDIVIDUAL',
         'REAJUSTE_GERAL',
         'REAJUSTE_LOTE',
-        'PROGRAMADO',
-        'NOTA_FISCAL',
-        'ASSISTENTE_COMPRA',
-        'ESPELHAMENTO',
-        'SIMULADOR',
+        'ENCARTE',
+        'IMPORTACAO',
       ],
-    }).notNull(),
-
-    incentivoEmZonaFranca: text('incentivo_em_zona_franca'),
-
-    // ── Datas dos últimos reajustes ──────────────────────────────────────────
-    dataUltimoReajustePreco1: text('data_ultimo_reajuste_preco_1'),
-    dataUltimoReajustePreco2: text('data_ultimo_reajuste_preco_2'),
-    dataUltimoReajustePreco3: text('data_ultimo_reajuste_preco_3'),
+    }),
 
     createdAt: text('created_at').default(sql`(datetime('now'))`),
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId: index('idx_prod_preco_product_id').on(t.productId),
-    idxLojaId:    index('idx_prod_preco_loja_id').on(t.lojaId),
-    uniqProductLoja: unique('uq_prod_preco_product_loja').on(t.productId, t.lojaId),
+    idxProdutoId:    index('idx_prod_preco_produto_id').on(t.produtoId),
+    idxLojaId:       index('idx_prod_preco_loja_id').on(t.lojaId),
+    uniqProdutoLoja: unique('uq_prod_preco_produto_loja').on(t.produtoId, t.lojaId),
   }),
 );
 
-export type ProductPreco    = typeof productPrecos.$inferSelect;
-export type NewProductPreco = typeof productPrecos.$inferInsert;
+export type ProdutoPreco    = typeof produtoPrecos.$inferSelect;
+export type NewProdutoPreco = typeof produtoPrecos.$inferInsert;

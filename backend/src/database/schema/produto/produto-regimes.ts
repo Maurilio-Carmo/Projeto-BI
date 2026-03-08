@@ -1,22 +1,22 @@
 import { sqliteTable, integer, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_REGIMES
+// PRODUTO_REGIMES
 // Array `regimesDoProduto` embutido em Produto.
 // Regime estadual tributário específico do produto por loja.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productRegimes = sqliteTable(
-  'product_regimes',
+export const produtoRegimes = sqliteTable(
+  'produto_regimes',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     lojaId:           integer('loja_id').notNull(),
     regimeEstadualId: integer('regime_estadual_id').notNull(),
@@ -24,11 +24,11 @@ export const productRegimes = sqliteTable(
     createdAt: text('created_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId: index('idx_prod_regime_product_id').on(t.productId),
-    idxLojaId:    index('idx_prod_regime_loja_id').on(t.lojaId),
-    uniqProductLojaRegime: unique('uq_prod_regime_product_loja').on(t.productId, t.lojaId),
+    idxProdutoId:         index('idx_prod_regime_produto_id').on(t.produtoId),
+    idxLojaId:            index('idx_prod_regime_loja_id').on(t.lojaId),
+    uniqProdutoLojaRegime: unique('uq_prod_regime_produto_loja').on(t.produtoId, t.lojaId),
   }),
 );
 
-export type ProductRegime    = typeof productRegimes.$inferSelect;
-export type NewProductRegime = typeof productRegimes.$inferInsert;
+export type ProdutoRegime    = typeof produtoRegimes.$inferSelect;
+export type NewProdutoRegime = typeof produtoRegimes.$inferInsert;

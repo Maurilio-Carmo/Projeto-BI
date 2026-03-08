@@ -1,21 +1,21 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_CUSTOS — /v1/produto/custos
+// PRODUTO_CUSTOS — /v1/produto/custos
 // Custos de reposição (reposição, médio, fiscal) por produto × loja.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productCustos = sqliteTable(
-  'product_custos',
+export const produtoCustos = sqliteTable(
+  'produto_custos',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     lojaId: integer('loja_id').notNull(),
 
@@ -27,11 +27,11 @@ export const productCustos = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId: index('idx_prod_custo_product_id').on(t.productId),
-    idxLojaId:    index('idx_prod_custo_loja_id').on(t.lojaId),
-    uniqProductLoja: unique('uq_prod_custo_product_loja').on(t.productId, t.lojaId),
+    idxProdutoId:    index('idx_prod_custo_produto_id').on(t.produtoId),
+    idxLojaId:       index('idx_prod_custo_loja_id').on(t.lojaId),
+    uniqProdutoLoja: unique('uq_prod_custo_produto_loja').on(t.produtoId, t.lojaId),
   }),
 );
 
-export type ProductCusto    = typeof productCustos.$inferSelect;
-export type NewProductCusto = typeof productCustos.$inferInsert;
+export type ProdutoCusto    = typeof produtoCustos.$inferSelect;
+export type NewProdutoCusto = typeof produtoCustos.$inferInsert;

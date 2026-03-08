@@ -1,21 +1,22 @@
 import { sqliteTable, integer, real, text, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_COMPONENTES
+// PRODUTO_COMPONENTES
 // Array `componentes` embutido em Produto (produtos do tipo KIT/COMPOSTO).
-// `componenteProductId` aponta para o produto-componente na mesma tabela.
+// `componenteProdutoId` aponta para o produto-componente na mesma tabela.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productComponentes = sqliteTable(
-  'product_componentes',
+export const produtoComponentes = sqliteTable(
+  'produto_componentes',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     quantidade: real('quantidade').notNull(),
     preco1:     real('preco_1').notNull(),
@@ -26,9 +27,9 @@ export const productComponentes = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId:   index('idx_prod_comp_product_id').on(t.productId),
+    idxProdutoId: index('idx_prod_comp_produto_id').on(t.produtoId),
   }),
 );
 
-export type ProductComponente    = typeof productComponentes.$inferSelect;
-export type NewProductComponente = typeof productComponentes.$inferInsert;
+export type ProdutoComponente    = typeof produtoComponentes.$inferSelect;
+export type NewProdutoComponente = typeof produtoComponentes.$inferInsert;

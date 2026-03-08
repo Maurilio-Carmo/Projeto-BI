@@ -1,22 +1,22 @@
 import { sqliteTable, integer, text, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_IMPOSTOS_FEDERAIS
+// PRODUTO_IMPOSTOS_FEDERAIS
 // Array `itensImpostosFederais` embutido em Produto.
 // Cada item referencia um ImpostoFederal pelo seu id (string).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productImpostosFederais = sqliteTable(
-  'product_impostos_federais',
+export const produtoImpostosFederais = sqliteTable(
+  'produto_impostos_federais',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     // Identificador do imposto federal (string, ex: "PIS_001")
     impostoFederalId: text('imposto_federal_id').notNull(),
@@ -24,10 +24,10 @@ export const productImpostosFederais = sqliteTable(
     createdAt: text('created_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId: index('idx_prod_imp_fed_product_id').on(t.productId),
+    idxProdutoId: index('idx_prod_imp_fed_produto_id').on(t.produtoId),
     idxImposto:   index('idx_prod_imp_fed_imposto_id').on(t.impostoFederalId),
   }),
 );
 
-export type ProductImpostoFederal    = typeof productImpostosFederais.$inferSelect;
-export type NewProductImpostoFederal = typeof productImpostosFederais.$inferInsert;
+export type ProdutoImpostoFederal    = typeof produtoImpostosFederais.$inferSelect;
+export type NewProdutoImpostoFederal = typeof produtoImpostosFederais.$inferInsert;

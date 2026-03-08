@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 
 // SECOES — /v1/produto/secoes
 export const secoes = sqliteTable('secoes', {
-  id:        integer('secao_id').primaryKey(),
+  secaoId:   integer('secao_id').primaryKey(),
   descricao: text('descricao').notNull(),
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),

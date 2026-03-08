@@ -1,10 +1,9 @@
 import { sqliteTable, integer, text, index, primaryKey } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { secoes } from './secoes';
 
 // GRUPOS — /v1/produto/secoes/{secaoId}/grupos
 export const grupos = sqliteTable('grupos', {
-  secaoId:   integer('secao_id').notNull().references(() => secoes.id, { onDelete: 'cascade' }),
+  secaoId:   integer('secao_id').notNull(),
   grupoId:   integer('grupo_id').notNull(),
   descricao: text('descricao').notNull(),
   createdAt: text('created_at').default(sql`(datetime('now'))`),

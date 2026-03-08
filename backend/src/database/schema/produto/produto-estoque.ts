@@ -1,22 +1,22 @@
 import { sqliteTable, integer, real, text, index, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import { products } from './produto';
+import { produtos } from './produto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCT_ESTOQUE
+// PRODUTO_ESTOQUE
 // Array `estoqueDoProduto` embutido em Produto — parâmetros de estoque
 // mínimo/máximo por loja.  Saldo real está em `estoque_saldos`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productEstoque = sqliteTable(
-  'product_estoque',
+export const produtoEstoque = sqliteTable(
+  'produto_estoque',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
 
-    // FK → products
-    productId: integer('product_id')
+    // FK → produtos
+    produtoId: integer('produto_id')
       .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+      .references(() => produtos.id, { onDelete: 'cascade' }),
 
     lojaId:        integer('loja_id').notNull(),
     estoqueMinimo: real('estoque_minimo').notNull(),
@@ -26,11 +26,11 @@ export const productEstoque = sqliteTable(
     updatedAt: text('updated_at').default(sql`(datetime('now'))`),
   },
   (t) => ({
-    idxProductId: index('idx_prod_estq_product_id').on(t.productId),
-    idxLojaId:    index('idx_prod_estq_loja_id').on(t.lojaId),
-    uniqProductLoja: unique('uq_prod_estq_product_loja').on(t.productId, t.lojaId),
+    idxProdutoId:    index('idx_prod_estq_produto_id').on(t.produtoId),
+    idxLojaId:       index('idx_prod_estq_loja_id').on(t.lojaId),
+    uniqProdutoLoja: unique('uq_prod_estq_produto_loja').on(t.produtoId, t.lojaId),
   }),
 );
 
-export type ProductEstoque    = typeof productEstoque.$inferSelect;
-export type NewProductEstoque = typeof productEstoque.$inferInsert;
+export type ProdutoEstoque    = typeof produtoEstoque.$inferSelect;
+export type NewProdutoEstoque = typeof produtoEstoque.$inferInsert;
