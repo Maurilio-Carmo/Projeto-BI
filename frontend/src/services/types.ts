@@ -1,73 +1,58 @@
 // frontend/src/services/types.ts
-// Tipos centralizados usados por todos os módulos de API e componentes.
 
-export type EntityType = 'nota_venda' | 'nota_compra' | 'cupom';
+export type EntityType = 'cupons_fiscais' | 'notas_venda' | 'notas_compra' | 'produtos' | 'precos' | 'estoque';
 
-export const ENTITY_LABELS: Record<EntityType, string> = {
-  nota_venda:  'NF-e Venda',
-  nota_compra: 'NF-e Compra',
-  cupom:       'Cupom Fiscal',
-};
-
-export const ENTITY_ENDPOINTS: Record<EntityType, string> = {
-  nota_venda:  '/v1/venda/notas-fiscais',
-  nota_compra: '/v1/compra/notas-fiscais',
-  cupom:       '/v1/venda/cupons-fiscais',
-};
-
-export interface Credencial {
-  id: number;
-  api_url: string;
-  api_key: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SyncConfig {
-  id: number;
-  entity_type: EntityType;
-  credencial_id: number;
-  interval_hours: '1' | '2' | '4' | '6' | '12' | '24';
-  is_active: boolean;
-  last_sync_id: number;
-  last_sync_at: string | null;
-  created_at: string;
-  updated_at: string;
+export interface SyncJob {
+  entity: EntityType;
+  name: string;
+  endpoint: string;
+  frequency: string;
+  status: 'RODANDO' | 'PAUSADO' | 'ERRO';
+  records: number;
+  active: boolean;
+  color: string;
+  icon: string;
+  lastSync?: string;
 }
 
 export interface SyncLog {
   id: number;
-  entity_type: EntityType;
+  entity: string;
   status: 'success' | 'error' | 'running';
-  start_id: number | null;
-  end_id: number | null;
-  records_imported: number;
-  error_message: string | null;
-  started_at: string;
-  finished_at: string | null;
+  records: number;
+  startId?: number;
+  endId?: number;
+  duration: string;
+  startedAt: string;
 }
 
-export interface LogStats {
-  total: number;
-  success: number;
-  error: number;
-  running: number;
-  entities: Record<EntityType, {
-    lastSync: string | null;
-    lastSyncId: number;
-    nextSync: string | null;
-    isActive: boolean;
-    intervalHours: string | null;
-    lastLog: SyncLog | null;
-  }>;
+export interface AnalyticsSummary {
+  faturamento: number;
+  lucroBruto: number;
+  cmv: number;
+  ticketMedio: number;
+  margemMedia: number;
+  totalCupons: number;
+  totalNfe: number;
+  totalCompras: number;
+  valorEstoque: number;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface ConfigEntity {
+  id: number;
+  entity: EntityType;
+  name: string;
+  endpoint: string;
+  intervalMinutes: number;
+  isActive: boolean;
+  lastSyncId: number;
+  lastSyncAt: string;
+}
+
+export interface SyncStatus {
+  entity: string;
+  name: string;
+  lastId: string;
+  lastTime: string;
+  color: string;
 }

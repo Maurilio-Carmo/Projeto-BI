@@ -1,16 +1,11 @@
 // backend/src/modules/sync/repositories/nota-compra.repository.ts
 //
-// ── CORREÇÕES ────────────────────────────────────────────────────────────────
-// 1. Import: 'transacoes/nota-compra' não existe.
-//    Correto: 'transacoes/notas-compra' → export: notasCompra
-// 2. 'transacoes/nota-compra-item' → 'transacoes/notas-compra-itens' → notasCompraItens
-// 3. Mapper retorna camelCase. FK: notaCompraId (era nota_compra_external_id)
-// 4. ✅ Campos obrigatórios ausentes no mapper adicionados com fallback:
-//    - tipoDeDocumentoFiscal: obrigatório no schema → default 'NF-e'
-//    - valorTotalDosItens: obrigatório no schema → default 0
-//    - compoeTotalDaNota (itens): obrigatório no schema → default true
+// CORREÇÕES:
+//  1. notaCompra     → notasCompra      (nome exportado em notas-compra.ts)
+//  2. notaCompraItem → notasCompraItens (nome exportado em notas-compra-itens.ts)
+//  3. mapItemNotaFiscalToDb(itemNota, N) → mapItemNotaFiscalToDb(itemNota)
+//     (mapper aceita apenas 1 argumento na versão atual)
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DrizzleDB } from '../../../database/drizzle';
 import { notasCompra, notasCompraItens } from '../../../database/schema';
@@ -25,53 +20,28 @@ export class NotaCompraRepository {
   constructor(@Inject('DRIZZLE') private readonly db: DrizzleDB) {}
 
   async upsert(item: any): Promise<void> {
-    const mappedValues = mapNotaFiscalToDb(item, 'COMPRA');
+    const values = mapNotaFiscalToDb(item, 'COMPRA');
 
-    // ✅ Garante campos NOT NULL obrigatórios que o mapper pode não incluir
-    const values = {
-      ...mappedValues,
-      tipoDeDocumentoFiscal:
-        mappedValues.tipoDeDocumentoFiscal ?? item.tipoDeDocumentoFiscal ?? 'NF-e',
-      valorTotalDosItens:
-        mappedValues.valorTotalDosItens ?? item.valorTotalDosItens ?? 0,
-    };
+    await this.db
+      .insert(notasCompra)                            // ← notasCompra (plural)
+      .values(values)
+      .onConflictDoUpdate({
+        target: notasCompra.externalId,
+        set: { ...values, updatedAt: new Date().toISOString() },
+      });
 
-    const insertResult = await this.db
-      .insert(notasCompra)
-      .values(values as any)
-      .onConflictDoNothing();
+    if (!Array.isArray(item.itens)) return;
 
-    const notaInternalId = insertResult.lastInsertRowid
-      ? Number(insertResult.lastInsertRowid)
-      : null;
+    for (const itemNota of item.itens) {
+      const itemValues = mapItemNotaFiscalToDb(itemNota);  // ← 1 argumento
 
-    if (!notaInternalId) return;
-
-    if (Array.isArray(item.itens)) {
-      for (const itemNota of item.itens) {
-        const mappedItem = mapItemNotaFiscalToDb(itemNota);
-
-        // ✅ Garante campos NOT NULL dos itens que o mapper pode não incluir
-        const itemValues = {
-          ...mappedItem,
-          notaCompraId: notaInternalId, // FK para notasCompra.id
-          compoeTotalDaNota:
-            mappedItem.compoeTotalDaNota ?? itemNota.compoeTotalDaNota ?? true,
-          // Campos numéricos nullable recebem fallback 0
-          quantidade: mappedItem.quantidade ?? itemNota.quantidade ?? 0,
-          valorUnitario: mappedItem.valorUnitario ?? itemNota.valorUnitario ?? 0,
-          valorTotal: mappedItem.valorTotal ?? itemNota.valorTotal ?? 0,
-          modalidadeDaBaseDeCalculo:
-            mappedItem.modalidadeDaBaseDeCalculo ??
-            itemNota.modalidadeDaBaseDeCalculo ??
-            null,
-        };
-
-        await this.db
-          .insert(notasCompraItens)
-          .values(itemValues as any)
-          .onConflictDoNothing();
-      }
+      await this.db
+        .insert(notasCompraItens)                     // ← notasCompraItens (plural)
+        .values({
+          ...itemValues,
+          notaCompraId: Number(item.id),
+        })
+        .onConflictDoNothing();
     }
   }
 }

@@ -15,7 +15,10 @@ import {
 import { SyncConfigService } from './config.service';
 import { CreateSyncConfigDto, UpdateSyncConfigDto } from './dto/sync-config.dto';
 import { SyncScheduler } from '../sync/sync.scheduler';
-import type { SyncConfig } from '../../database/schema/infra/sync-config';
+// CORREÇÃO: importar EntityType para cast explícito
+// result.entity_type vem do Drizzle como `string` (text() sem enum),
+// mas reloadJob/removeJob exigem o tipo literal EntityType.
+import type { EntityType, SyncConfig } from '../../database/schema/infra/sync-config';
 
 @Controller('api/config')
 export class ConfigController {
@@ -34,9 +37,8 @@ export class ConfigController {
   async create(@Body() dto: CreateSyncConfigDto) {
     const result = await this.configService.create(dto);
 
-    // ✅ Corrigido: is_active → isActive / entity_type → entityType
-    if (result?.isActive) {
-      await this.syncScheduler.reloadJob(result.entityType);
+    if (result?.is_active) {
+      await this.syncScheduler.reloadJob(result.entity_type as EntityType);
     }
 
     return result;
@@ -47,9 +49,7 @@ export class ConfigController {
     const result = await this.configService.update(id, dto);
 
     if (!result) return result;
-
-    // ✅ Corrigido: entity_type → entityType
-    await this.syncScheduler.reloadJob(result.entityType);
+    await this.syncScheduler.reloadJob(result.entity_type as EntityType);
 
     return result;
   }
@@ -59,9 +59,8 @@ export class ConfigController {
   async resetLastSyncId(@Param('id', ParseIntPipe) id: number) {
     const result = await this.configService.resetLastSyncId(id);
 
-    // ✅ Corrigido: is_active → isActive / entity_type → entityType
-    if (result.isActive) {
-      await this.syncScheduler.reloadJob(result.entityType);
+    if (result.is_active) {
+      await this.syncScheduler.reloadJob(result.entity_type as EntityType);
     }
 
     return result;
@@ -71,13 +70,12 @@ export class ConfigController {
   @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseIntPipe) id: number) {
     const configs = await this.configService.findAll();
-    const config = configs.find((c: SyncConfig) => c.id === id);
+    const config  = configs.find((c: SyncConfig) => c.id === id);
 
     const result = await this.configService.remove(id);
 
     if (config) {
-      // ✅ Corrigido: entity_type → entityType
-      this.syncScheduler.removeJob(config.entityType);
+      this.syncScheduler.removeJob(config.entity_type as EntityType);
     }
 
     return result;

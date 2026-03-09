@@ -1,28 +1,27 @@
 // backend/src/modules/logs/logs.service.ts
 //
-// ── CORREÇÕES ────────────────────────────────────────────────────────────────
-// 1. syncLogs.entity_type  → syncLogs.entityType
-// 2. syncLogs.started_at   → syncLogs.startedAt
-// 3. syncLogs.status enum  → 'RUNNING' | 'SUCCESS' | 'ERROR' | 'PARTIAL'
-// 4. records_imported      → recordsImported
+// CORREÇÃO: acessos ao schema corrigidos para snake_case.
+//   c.entityType      → c.entity_type
+//   cfg.lastSyncAt    → cfg.last_sync_at
+//   cfg.lastSyncId    → cfg.last_sync_id
+//   cfg.isActive      → cfg.is_active
+//   cfg.intervalMinutes → cfg.interval_hours  (campo agora é string de horas)
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { Injectable, Inject } from '@nestjs/common';
-import { desc, eq, and, count, sql } from 'drizzle-orm';
-import type { SQL } from 'drizzle-orm';
-import { DrizzleDB }  from '../../database/drizzle';
-import { syncLogs }   from '../../database/schema/infra/sync-logs';
+import { desc, eq, and, count } from 'drizzle-orm';
+import { SQL } from 'drizzle-orm';
+import { DrizzleDB } from '../../database/drizzle';
+import { syncLogs }  from '../../database/schema/infra/sync-logs';
 import { syncConfig } from '../../database/schema/infra/sync-config';
 import type { SyncLog }    from '../../database/schema/infra/sync-logs';
+import type { SyncConfig } from '../../database/schema/infra/sync-config';
 import type { EntityType } from '../../database/schema/infra/sync-config';
 
-type LogStatus = 'RUNNING' | 'SUCCESS' | 'ERROR' | 'PARTIAL';
-
 interface FindLogsParams {
-  entity?: string;
-  status?: string;
-  page?:   number;
-  limit?:  number;
+  entity?: EntityType;
+  status?: 'success' | 'error' | 'running';
+  page?: number;
+  limit?: number;
 }
 
 @Injectable()
@@ -37,11 +36,10 @@ export class LogsService {
     const conditions: SQL[] = [];
 
     if (params.entity) {
-      conditions.push(eq(syncLogs.entityType, params.entity));
+      conditions.push(eq(syncLogs.entity_type, params.entity));
     }
-
     if (params.status) {
-      conditions.push(eq(syncLogs.status, params.status.toUpperCase() as LogStatus));
+      conditions.push(eq(syncLogs.status, params.status));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -51,7 +49,7 @@ export class LogsService {
         .select()
         .from(syncLogs)
         .where(where)
-        .orderBy(desc(syncLogs.startedAt))
+        .orderBy(desc(syncLogs.started_at))
         .limit(limit)
         .offset(offset),
       this.db.select({ total: count() }).from(syncLogs).where(where),
@@ -66,55 +64,46 @@ export class LogsService {
         limit,
         total,
         totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
+        hasNext:    page * limit < total,
+        hasPrev:    page > 1,
       },
     };
   }
 
   async getStats() {
-    const [totals] = await this.db
-      .select({
-        total:   count(),
-        running: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'RUNNING'  THEN 1 ELSE 0 END)`,
-        success: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'SUCCESS'  THEN 1 ELSE 0 END)`,
-        error:   sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'ERROR'    THEN 1 ELSE 0 END)`,
-        partial: sql<number>`SUM(CASE WHEN ${syncLogs.status} = 'PARTIAL'  THEN 1 ELSE 0 END)`,
-      })
-      .from(syncLogs);
-
-    // Dados por entidade
-    const configs = await this.db.select().from(syncConfig);
-
-    const ENTITY_TYPES = ['nota_venda', 'nota_compra', 'cupom'] as const;
-    const entities: Record<string, object> = {};
-
-    for (const et of ENTITY_TYPES) {
-      const cfg = configs.find(c => c.entityType === et);
-
-      const [lastLog] = await this.db
+    const [lastLogs, configs] = await Promise.all([
+      this.db
         .select()
         .from(syncLogs)
-        .where(eq(syncLogs.entityType, et))
-        .orderBy(desc(syncLogs.startedAt))
-        .limit(1);
+        .orderBy(desc(syncLogs.started_at))
+        .limit(50),
+      this.db.select().from(syncConfig),
+    ]);
 
-      entities[et] = {
-        lastSync:      cfg?.lastSyncAt ?? null,
-        lastSyncId:    cfg?.lastSyncId ?? 0,
-        isActive:      cfg?.isActive   ?? false,
-        intervalMin:   cfg?.intervalMinutes ?? null,
-        lastLog:       lastLog ?? null,
+    const entities: EntityType[] = ['nota_venda', 'nota_compra', 'cupom'];
+
+    const result: Record<string, {
+      lastLog:       SyncLog | null;
+      lastSyncId:    number;
+      lastSync:      string | null;
+      isActive:      boolean;
+      intervalHours: string | null;
+    }> = {};
+
+    for (const et of entities) {
+      // CORREÇÃO: entity_type (snake_case)
+      const cfg = configs.find((c: SyncConfig) => c.entity_type === et);
+      const log = lastLogs.find((l: SyncLog)   => l.entity_type === et) ?? null;
+
+      result[et] = {
+        lastLog:       log,
+        lastSyncId:    cfg?.last_sync_id   ?? 0,      // ← snake_case
+        lastSync:      cfg?.last_sync_at   ?? null,   // ← snake_case
+        isActive:      cfg?.is_active      ?? false,  // ← snake_case
+        intervalHours: cfg?.interval_hours ?? null,   // ← interval_hours (não intervalMinutes)
       };
     }
 
-    return {
-      total:   totals?.total   ?? 0,
-      running: totals?.running ?? 0,
-      success: totals?.success ?? 0,
-      error:   totals?.error   ?? 0,
-      partial: totals?.partial ?? 0,
-      entities,
-    };
+    return { entities: result };
   }
 }

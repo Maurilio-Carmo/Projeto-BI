@@ -1,23 +1,15 @@
 // backend/src/modules/config/config.service.ts
 //
-// ── CORREÇÕES ────────────────────────────────────────────────────────────────
-// 1. Todos os campos de syncConfig agora em camelCase:
-//    entity_type → entityType, is_active → isActive,
-//    interval_hours → intervalMinutes, last_sync_id → lastSyncId,
-//    last_sync_at → lastSyncAt, updated_at → updatedAt
-// 2. Removido credencial_id (não existe mais no schema).
-//    Credenciais ficam em baseUrlEncrypted / apiTokenEncrypted.
-// 3. lastInsertRowid (BigInt) → Number()
+// CORREÇÃO: todos os acessos a campos do schema agora usam snake_case,
+// alinhado com o sync-config.ts corrigido.
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../database/drizzle';
 import { syncConfig } from '../../database/schema';
 import { SyncScheduler } from '../sync/sync.scheduler';
-import type { SyncConfig } from '../../database/schema/infra/sync-config';
+import type { EntityType, SyncConfig } from '../../database/schema/infra/sync-config';
 import { CreateSyncConfigDto, UpdateSyncConfigDto } from './dto/sync-config.dto';
-import type { EntityType } from './dto/sync-config.dto';
 
 @Injectable()
 export class SyncConfigService {
@@ -31,35 +23,28 @@ export class SyncConfigService {
   }
 
   async findOne(id: number): Promise<SyncConfig> {
-    const rows = await this.db
-      .select()
-      .from(syncConfig)
-      .where(eq(syncConfig.id, id));
-
-    if (!rows.length) {
-      throw new NotFoundException(`Configuração #${id} não encontrada`);
-    }
+    const rows = await this.db.select().from(syncConfig).where(eq(syncConfig.id, id));
+    if (!rows.length) throw new NotFoundException(`Configuração #${id} não encontrada`);
     return rows[0];
   }
 
   async create(dto: CreateSyncConfigDto): Promise<SyncConfig> {
+    // DTO já usa snake_case → insert direto funciona
     const result = await this.db.insert(syncConfig).values({
-      entityType:        dto.entityType,
-      apiEndpoint:       dto.apiEndpoint,
-      baseUrlEncrypted:  dto.baseUrlEncrypted,
-      apiTokenEncrypted: dto.apiTokenEncrypted,
-      intervalMinutes:   dto.intervalMinutes,
-      isActive:          dto.isActive ?? true,
-      description:       dto.description,
+      entity_type:   dto.entity_type,
+      api_endpoint:  '', // preenchido via UI se necessário
+      interval_hours: dto.interval_hours,
+      is_active:     dto.is_active ?? true,
     });
 
-    // libSQL: lastInsertRowid é BigInt — converte para number
     const newId   = result.lastInsertRowid ? Number(result.lastInsertRowid) : 0;
     const created = await this.findOne(newId);
 
-    if (created.isActive) {
-      const intervalHours = Math.max(1, Math.round((created.intervalMinutes ?? 60) / 60));
-      this.syncScheduler.registerJob(created.entityType as EntityType, intervalHours);
+    if (created.is_active) {
+      this.syncScheduler.registerJob(
+        created.entity_type as EntityType,
+        Number(created.interval_hours),
+      );
     }
 
     return created;
@@ -68,45 +53,42 @@ export class SyncConfigService {
   async update(id: number, dto: UpdateSyncConfigDto): Promise<SyncConfig> {
     await this.findOne(id);
 
+    // Monta patch apenas com campos presentes no DTO
     const patch: Partial<typeof syncConfig.$inferInsert> = {
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    if (dto.apiEndpoint       !== undefined) patch.apiEndpoint       = dto.apiEndpoint;
-    if (dto.baseUrlEncrypted  !== undefined) patch.baseUrlEncrypted  = dto.baseUrlEncrypted;
-    if (dto.apiTokenEncrypted !== undefined) patch.apiTokenEncrypted = dto.apiTokenEncrypted;
-    if (dto.intervalMinutes   !== undefined) patch.intervalMinutes   = dto.intervalMinutes;
-    if (dto.isActive          !== undefined) patch.isActive          = dto.isActive;
-    if (dto.description       !== undefined) patch.description       = dto.description;
+    if (dto.interval_hours !== undefined) patch.interval_hours = dto.interval_hours;
+    if (dto.is_active      !== undefined) patch.is_active      = dto.is_active;
+    if (dto.last_sync_id   !== undefined) patch.last_sync_id   = dto.last_sync_id;
 
     await this.db.update(syncConfig).set(patch).where(eq(syncConfig.id, id));
     const updated = await this.findOne(id);
 
-    const intervalHours = Math.max(1, Math.round((updated.intervalMinutes ?? 60) / 60));
-
-    if (updated.isActive) {
-      this.syncScheduler.registerJob(updated.entityType as EntityType, intervalHours);
+    if (updated.is_active) {
+      this.syncScheduler.registerJob(
+        updated.entity_type as EntityType,
+        Number(updated.interval_hours),
+      );
     } else {
-      this.syncScheduler.removeJob(updated.entityType as EntityType);
+      this.syncScheduler.removeJob(updated.entity_type as EntityType);
     }
 
     return updated;
   }
 
-  /** Zera o cursor incremental (reimporta tudo no próximo sync). */
   async resetLastSyncId(id: number): Promise<SyncConfig> {
     await this.findOne(id);
     await this.db
       .update(syncConfig)
-      .set({ lastSyncId: 0, updatedAt: new Date().toISOString() })
+      .set({ last_sync_id: 0, updated_at: new Date().toISOString() })
       .where(eq(syncConfig.id, id));
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: number): Promise<void> {
     const config = await this.findOne(id);
-    this.syncScheduler.removeJob(config.entityType as EntityType);
+    this.syncScheduler.removeJob(config.entity_type as EntityType);
     await this.db.delete(syncConfig).where(eq(syncConfig.id, id));
-    return { message: `Configuração #${id} removida.` };
   }
 }
