@@ -1,12 +1,6 @@
 // backend/src/modules/sync/repositories/nota-venda.repository.ts
-//
-// CORREÇÕES:
-//  1. notaVenda     → notasVenda      (nome exportado em notas-venda.ts)
-//  2. notaVendaItem → notasVendaItens (nome exportado em notas-venda-itens.ts)
-//  3. mapItemNotaFiscalToDb(itemNota, N) → mapItemNotaFiscalToDb(itemNota)
-//     (mapper aceita apenas 1 argumento na versão atual)
-// ─────────────────────────────────────────────────────────────────────────────
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import { DrizzleDB } from '../../../database/drizzle';
 import { notasVenda, notasVendaItens } from '../../../database/schema';
 import { mapNotaFiscalToDb, mapItemNotaFiscalToDb } from '../mappers/nota-fiscal.mapper';
@@ -22,24 +16,35 @@ export class NotaVendaRepository {
   async upsert(item: any): Promise<void> {
     const values = mapNotaFiscalToDb(item, 'VENDA');
 
-    await this.db
-      .insert(notasVenda)                            // ← notasVenda (plural)
-      .values(values)
-      .onConflictDoUpdate({
-        target: notasVenda.externalId,
-        set: { ...values, updatedAt: new Date().toISOString() },
-      });
+    // notasVenda não tem externalId — usa onConflictDoNothing como proteção
+    await this.db.insert(notasVenda).values(values).onConflictDoNothing();
 
     if (!Array.isArray(item.itens)) return;
 
+    // Recupera o ID interno via chaveDaNfe com eq() correto do Drizzle
+    let notaFiscalVendaId: number = Number(item.id ?? 0);
+
+    if (values.chaveDaNfe) {
+      const rows = await this.db
+        .select({ id: notasVenda.id })
+        .from(notasVenda)
+        .where(eq(notasVenda.chaveDaNfe, values.chaveDaNfe))  // ← eq() correto ✅
+        .limit(1);
+      if (rows.length) notaFiscalVendaId = rows[0].id;
+    }
+
     for (const itemNota of item.itens) {
-      const itemValues = mapItemNotaFiscalToDb(itemNota);  // ← 1 argumento
+      const itemValues = mapItemNotaFiscalToDb(itemNota);
 
       await this.db
-        .insert(notasVendaItens)                     // ← notasVendaItens (plural)
+        .insert(notasVendaItens)
         .values({
           ...itemValues,
-          notaFiscalVendaId: Number(item.id),
+          notaFiscalVendaId,
+          // Campos NOT NULL que o mapper deixa sem default — garantir fallback
+          quantidadeDeItensNaUnidade: itemValues.quantidadeDeItensNaUnidade ?? 1, // ← NOT NULL ✅
+          valorDaEmbalagem:           itemValues.valorDaEmbalagem           ?? 0, // ← NOT NULL ✅
+          compoeTotalDaNota:          itemNota.compoeTotalDaNota            ?? true,
         })
         .onConflictDoNothing();
     }
