@@ -747,3 +747,147 @@
 .ruptura-bar-wrap { flex: 2; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .ruptura-bar-fill { height: 100%; border-radius: 4px; }
 .ruptura-val { font-family: var(--font-mono); font-size: 11px; width: 36px; text-align: right; }
+
+/* ══════════════════════════════════════════════════════════
+   TOGGLE — botão da topbar
+   ══════════════════════════════════════════════════════════ */
+.btn-sidebar-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-sidebar-toggle:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR — transição suave na largura
+   ══════════════════════════════════════════════════════════ */
+.sidebar {
+  transition: width 0.22s ease;
+}
+
+/* Garante que spans tenham transição ao expandir/colapsar */
+.nav-item-label,
+.sidebar-footer-label {
+  opacity: 1;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.15s, max-width 0.22s;
+}
+
+.nav-label,
+.logo-sub {
+  max-height: 40px;
+  overflow: hidden;
+  transition: opacity 0.15s, max-height 0.22s;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR — estado COLAPSADO (desktop / tablet: só ícones)
+   ══════════════════════════════════════════════════════════ */
+.sidebar--collapsed {
+  width: 52px;
+}
+
+.sidebar--collapsed .nav-item-label,
+.sidebar--collapsed .sidebar-footer-label {
+  opacity: 0;
+  max-width: 0;
+}
+
+.sidebar--collapsed .nav-label,
+.sidebar--collapsed .logo-sub {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+}
+
+.sidebar--collapsed .nav-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+}
+
+.sidebar--collapsed .status-badge {
+  justify-content: center;
+}
+
+.sidebar--collapsed .logo {
+  display: flex;
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE (< 768px) — drawer fora da tela por padrão
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 200;
+    width: var(--sidebar-w) !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: none;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.6);
+  }
+
+  /* No drawer, sempre mostra textos — anula o collapsed */
+  .sidebar .nav-item-label,
+  .sidebar .sidebar-footer-label {
+    opacity: 1 !important;
+    max-width: 200px !important;
+  }
+
+  .sidebar .nav-label,
+  .sidebar .logo-sub {
+    opacity: 1 !important;
+    max-height: 40px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .sidebar .nav-item {
+    justify-content: flex-start !important;
+    padding: 9px 10px !important;
+    gap: 9px !important;
+  }
+
+  .sidebar .status-badge {
+    justify-content: flex-start !important;
+  }
+
+  .sidebar .logo {
+    justify-content: flex-start !important;
+    padding: 20px 18px 16px !important;
+  }
+}
+
+/* Overlay escuro atrás do drawer mobile */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0, 0, 0, 0.55);
+}
